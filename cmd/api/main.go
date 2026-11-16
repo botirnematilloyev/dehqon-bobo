@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"dehqon-bobo/internal/modules/catalog"
 	"dehqon-bobo/internal/modules/farm"
 	"dehqon-bobo/internal/modules/user"
 	"dehqon-bobo/internal/modules/user/service"
@@ -57,10 +58,19 @@ func main() {
 	// faqat adapter (adapters.go) orqali murojaat qiladi.
 	userModule := user.New(pool, redisClient, cfg.JWT, cfg.Notifier, cfg.Telegram)
 
+	catalogModule := catalog.New(pool, catalog.Deps{
+		Auth:              userModule.Authenticated(),
+		RequireAgronomist: userModule.RequireAgronomist(),
+		UserIDFrom:        userhttp.UserIDFromContext,
+	})
+	catalogPort := catalogBridge{m: catalogModule}
+
 	farmModule := farm.New(pool, farm.Deps{
-		Auth:       userModule.Authenticated(),
-		UserIDFrom: userhttp.UserIDFromContext,
-		Onboarder:  onboarderFunc(userModule.MarkOnboarded),
+		Auth:          userModule.Authenticated(),
+		UserIDFrom:    userhttp.UserIDFromContext,
+		Onboarder:     onboarderFunc(userModule.MarkOnboarded),
+		Catalog:       catalogPort,
+		WaterDefaults: catalogPort,
 	})
 
 	botDone := make(chan struct{})
@@ -123,6 +133,7 @@ func main() {
 	router.Route("/api/v1", func(r chi.Router) {
 		userModule.RegisterRoutes(r)
 		farmModule.RegisterRoutes(r)
+		catalogModule.RegisterRoutes(r)
 	})
 
 	root := chi.NewMux()

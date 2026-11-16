@@ -101,7 +101,7 @@ func saltsFrom(in map[string]map[string]float64) Salts {
 
 // densitySalts — HPG getSaltComposition: maydon 0 bo'lsa standart.
 func densitySalts(s Salts) Salts {
-	d := DefaultSalts()
+	d := hpgDefaultSalts()
 	s.CaNO3Ca = orDefault(s.CaNO3Ca, d.CaNO3Ca)
 	s.KNO3K = orDefault(s.KNO3K, d.KNO3K)
 	s.NH4NO3NO3 = orDefault(s.NH4NO3NO3, d.NH4NO3NO3)

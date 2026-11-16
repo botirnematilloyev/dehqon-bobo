@@ -40,6 +40,12 @@ func TestRegisterRoutes_AllRequireAuth(t *testing.T) {
 		{http.MethodGet, "/api/v1/farms/1/water"},
 		{http.MethodGet, "/api/v1/farms/1/water/history"},
 		{http.MethodPost, "/api/v1/farms/1/water"},
+		{http.MethodGet, "/api/v1/farms/1/fertilizers"},
+		{http.MethodPut, "/api/v1/farms/1/fertilizers/CaNO3"},
+		{http.MethodDelete, "/api/v1/farms/1/fertilizers/CaNO3"},
+		{http.MethodGet, "/api/v1/farms/1/parameters"},
+		{http.MethodPut, "/api/v1/farms/1/parameters/residual_hco3_mmol"},
+		{http.MethodDelete, "/api/v1/farms/1/parameters/residual_hco3_mmol"},
 	}
 	for _, rt := range routes {
 		rec := httptest.NewRecorder()

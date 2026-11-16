@@ -57,11 +57,17 @@ func (s *WaterService) History(ctx context.Context, userID, farmID int64, limit 
 // Record yangi tahlilni faol qiladi. Eskisi o'chirilmaydi — avvalgi
 // eritmalar (solution_batches.water_analysis_id) unga bog'langan.
 func (s *WaterService) Record(ctx context.Context, userID, farmID int64, in WaterInput) (*domain.WaterAnalysis, error) {
-	if _, err := s.farms.owned(ctx, userID, farmID); err != nil {
+	farm, err := s.farms.owned(ctx, userID, farmID)
+	if err != nil {
 		return nil, err
 	}
 
-	w, err := buildWater(in)
+	var w domain.WaterAnalysis
+	if in.Estimate {
+		w, err = s.farms.estimateWater(ctx, in.Source, farm.RegionID)
+	} else {
+		w, err = buildWater(in)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +89,6 @@ func (s *WaterService) Record(ctx context.Context, userID, farmID int64, in Wate
 }
 
 func buildWater(in WaterInput) (domain.WaterAnalysis, error) {
-	if in.Estimate {
-		return domain.EstimateWater(in.Source)
-	}
 	if in.EC == nil || in.Ca == nil || in.Mg == nil || in.HCO3Mmol == nil {
 		return domain.WaterAnalysis{}, domain.ErrInvalidWaterValue
 	}

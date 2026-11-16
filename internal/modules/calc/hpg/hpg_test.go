@@ -82,7 +82,7 @@ func TestDose_SaltBalanceRecoversProfile(t *testing.T) {
 	// Tuzlar grammidan profilni qayta yig'ib, kirish profili chiqishini
 	// tekshiramiz (massa balansi). K2SO4 rejimi — hamma tuz ishtirok etadi.
 	m := Balanced(tomato())
-	c := DefaultSalts()
+	c := hpgDefaultSalts()
 	d := DosePer10L(m, c, SaltMode{UseK2SO4: true})
 	require.True(t, d.Feasible())
 
@@ -101,16 +101,16 @@ func TestDose_InfeasibleProfileIsNegative(t *testing.T) {
 	m := tomato()
 	m.Mg = 120
 	m.S = 60
-	d := DosePer10L(m, DefaultSalts(), SaltMode{UseK2SO4: true})
+	d := DosePer10L(m, hpgDefaultSalts(), SaltMode{UseK2SO4: true})
 	require.Less(t, d.K2SO4, 0.0)
 	require.False(t, d.Feasible())
 
-	d = DosePer10L(m, DefaultSalts(), SaltMode{UseMgNO3: true})
+	d = DosePer10L(m, hpgDefaultSalts(), SaltMode{UseMgNO3: true})
 	require.GreaterOrEqual(t, d.MgNO3, 0.0, "magnesium nitrate covers the Mg surplus")
 }
 
 func TestWeights_ScaleWithVolume(t *testing.T) {
-	d := DosePer10L(Balanced(tomato()), DefaultSalts(), SaltMode{UseK2SO4: true})
+	d := DosePer10L(Balanced(tomato()), hpgDefaultSalts(), SaltMode{UseK2SO4: true})
 	g10, _ := Weights(d, 10)
 	g1000, total := Weights(d, 1000)
 	require.InDelta(t, g10.CaNO3*100, g1000.CaNO3, 1, "1000 L = 100 × 10 L, rounded to 1 g")
@@ -154,7 +154,7 @@ func TestMicro(t *testing.T) {
 }
 
 func TestDensity(t *testing.T) {
-	c := DefaultSalts()
+	c := hpgDefaultSalts()
 	require.InDelta(t, 0.998, Density(KNO3, 0, c), 1e-12, "zero concentration ≈ water")
 	require.Greater(t, Density(CaNO3, 600, c), Density(CaNO3, 300, c))
 	require.Equal(t, 1.0, Density("Fe", 50, c), "micro salts use 1.0")

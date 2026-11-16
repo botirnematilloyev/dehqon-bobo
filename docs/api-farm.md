@@ -80,6 +80,16 @@ POST tanasi:
 
 Birliklar: `ec` — mS/sm, ionlar — mg/L, `hco3_mmol` — mmol/L.
 
+## Xo'jalik sozlamalari
+
+`GET/PUT/DELETE /farms/{farmID}/fertilizers/{code}` va
+`GET/PUT/DELETE /farms/{farmID}/parameters/{key}` — agronom standarti ustidan
+dehqon kiritadigan qiymatlar. Batafsil: `docs/calc-parameters.md`.
+
+"Bilmayman" (`estimate: true`) uchun suv tarkibi `water_source_defaults`
+jadvalidan olinadi: avval viloyatniki, topilmasa mamlakat bo'yicha. Bunday
+qiymat umuman bo'lmasa, 422 qaytadi.
+
 ## Xatolar
 
 `{ "error": "..." }` — 400 (noto'g'ri qiymat yoki enum), 401, 404, 500.

@@ -41,3 +41,25 @@ type TxManager interface {
 type UserOnboarder interface {
 	MarkOnboarded(ctx context.Context, userID int64, regionID, districtID *int32, at int64) error
 }
+
+type SettingsRepository interface {
+	ListFertilizerOverrides(ctx context.Context, farmID int64) ([]domain.FertilizerOverride, error)
+	UpsertFertilizerOverride(ctx context.Context, o *domain.FertilizerOverride) error
+	DeleteFertilizerOverride(ctx context.Context, farmID int64, code string) error
+	ListParamOverrides(ctx context.Context, farmID int64) (map[string]float64, error)
+	UpsertParamOverride(ctx context.Context, farmID int64, key string, value float64, at int64) error
+	DeleteParamOverride(ctx context.Context, farmID int64, key string) error
+}
+
+// Catalog — `catalog` moduliga ko'prik: agronom belgilagan standartlar.
+type Catalog interface {
+	Fertilizers(ctx context.Context) ([]domain.FertilizerDef, error)
+	Parameters(ctx context.Context) ([]domain.ParamDef, error)
+}
+
+// WaterDefaults — suv manbai uchun taxminiy tarkib (catalog,
+// water_source_defaults). Avval viloyatniki, bo'lmasa mamlakat bo'yicha.
+// Topilmasa domain.ErrWaterDefaultMissing.
+type WaterDefaults interface {
+	Estimate(ctx context.Context, source domain.WaterSource, regionID *int32) (domain.WaterAnalysis, error)
+}

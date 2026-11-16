@@ -48,6 +48,8 @@ func statusFromError(err error) (int, string) {
 		return http.StatusBadRequest, "ec, ca, mg and hco3_mmol are required and must be in a realistic range"
 	case errors.Is(err, domain.ErrInvalidArea):
 		return http.StatusBadRequest, "area and volume must be positive"
+	case errors.Is(err, domain.ErrWaterDefaultMissing):
+		return http.StatusUnprocessableEntity, "no default water composition for this source; enter a lab analysis"
 	case errors.Is(err, errInvalidID):
 		return http.StatusBadRequest, "invalid id"
 

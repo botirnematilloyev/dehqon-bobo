@@ -71,23 +71,6 @@ func TestPlot_Validate(t *testing.T) {
 	require.ErrorIs(t, (&Plot{Name: "a", DefaultVolumeL: ptr(-5.0)}).Validate(), ErrInvalidArea)
 }
 
-func TestEstimateWater(t *testing.T) {
-	for _, src := range []WaterSource{WaterWell, WaterCanal, WaterTap, WaterFilter} {
-		w, err := EstimateWater(src)
-		require.NoError(t, err)
-		require.True(t, w.IsEstimate)
-		require.Equal(t, src, w.Source)
-		require.NoError(t, w.Validate(), "estimates must pass their own validation")
-	}
-
-	well, _ := EstimateWater(WaterWell)
-	filtered, _ := EstimateWater(WaterFilter)
-	require.Greater(t, well.HCO3Mmol, filtered.HCO3Mmol, "well water is harder than RO water")
-
-	_, err := EstimateWater(0)
-	require.ErrorIs(t, err, ErrInvalidWaterSource)
-}
-
 func TestWaterAnalysis_Validate(t *testing.T) {
 	base := func() WaterAnalysis {
 		return WaterAnalysis{Source: WaterWell, EC: 1.1, Ca: 90, Mg: 30, HCO3Mmol: 4}
@@ -115,4 +98,53 @@ func TestWaterAnalysis_Validate(t *testing.T) {
 	w = base()
 	w.Source = 7
 	require.ErrorIs(t, w.Validate(), ErrInvalidWaterSource)
+}
+
+func TestMergeFertilizer(t *testing.T) {
+	def := FertilizerDef{Code: "CaNO3", Kind: 1, Elements: map[string]float64{"Ca": 16.972, "N_NO3": 11.863}, StockGL: ptr(600.0)}
+
+	eff := MergeFertilizer(def, nil)
+	require.False(t, eff.Overridden)
+	require.Equal(t, def.Elements, eff.Elements)
+
+	o := &FertilizerOverride{Elements: map[string]float64{"Ca": 19, "N_NO3": 14.4, "N_NH4": 1.1}, StockGL: ptr(500.0), Brand: ptr("Yara")}
+	eff = MergeFertilizer(def, o)
+	require.True(t, eff.Overridden)
+	require.Equal(t, 19.0, eff.Elements["Ca"])
+	require.Equal(t, 500.0, *eff.StockGL)
+	require.Equal(t, 16.972, eff.Default.Elements["Ca"], "default is kept for the reset button")
+
+	// Faqat narx o'zgarsa tarkib standartligicha qoladi.
+	eff = MergeFertilizer(def, &FertilizerOverride{PriceUZSPerKg: new(int64)})
+	require.Equal(t, def.Elements, eff.Elements)
+	require.Equal(t, 600.0, *eff.StockGL)
+}
+
+func TestFertilizerOverride_Validate(t *testing.T) {
+	salt := FertilizerDef{Code: "KNO3", Kind: 1}
+	acid := FertilizerDef{Code: "HNO3_38", Kind: 3}
+
+	require.NoError(t, (&FertilizerOverride{Elements: map[string]float64{"K": 38, "N_NO3": 13.5}}).Validate(salt))
+	require.ErrorIs(t, (&FertilizerOverride{Elements: map[string]float64{"Kalium": 38}}).Validate(salt), ErrInvalidElements)
+	require.ErrorIs(t, (&FertilizerOverride{Elements: map[string]float64{"K": 0}}).Validate(salt), ErrInvalidElements)
+	require.ErrorIs(t, (&FertilizerOverride{Elements: map[string]float64{"K": 70, "N_NO3": 40}}).Validate(salt), ErrInvalidElements, "over 100%")
+	require.ErrorIs(t, (&FertilizerOverride{StockGL: ptr(-1.0)}).Validate(salt), ErrInvalidSetting)
+	require.ErrorIs(t, (&FertilizerOverride{ConcentrationPct: ptr(38.0)}).Validate(salt), ErrInvalidSetting, "salts have no acid strength")
+
+	require.NoError(t, (&FertilizerOverride{ConcentrationPct: ptr(56.0), DensityGML: ptr(1.35)}).Validate(acid))
+	require.ErrorIs(t, (&FertilizerOverride{DensityGML: ptr(2.5)}).Validate(acid), ErrInvalidSetting)
+}
+
+func TestParamDef_Check(t *testing.T) {
+	d := ParamDef{Key: "residual_hco3_mmol", Value: 0.5, Min: 0, Max: 3, FarmOverridable: true}
+	require.NoError(t, d.Check(1))
+	require.ErrorIs(t, d.Check(3.1), ErrInvalidSetting)
+
+	d.FarmOverridable = false
+	require.ErrorIs(t, d.Check(1), ErrParameterNotOverridable)
+
+	eff := MergeParam(d, ptr(1.2))
+	require.Equal(t, 1.2, eff.Value)
+	require.Equal(t, 0.5, eff.Default)
+	require.True(t, eff.Overridden)
 }

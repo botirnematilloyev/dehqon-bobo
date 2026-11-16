@@ -10,21 +10,37 @@ import (
 )
 
 type FarmService struct {
-	farms     FarmRepository
-	plots     PlotRepository
-	water     WaterAnalysisRepository
-	onboarder UserOnboarder
-	tx        TxManager
+	farms         FarmRepository
+	plots         PlotRepository
+	water         WaterAnalysisRepository
+	waterDefaults WaterDefaults
+	onboarder     UserOnboarder
+	tx            TxManager
 }
 
 func NewFarmService(
 	farms FarmRepository,
 	plots PlotRepository,
 	water WaterAnalysisRepository,
+	waterDefaults WaterDefaults,
 	onboarder UserOnboarder,
 	tx TxManager,
 ) *FarmService {
-	return &FarmService{farms: farms, plots: plots, water: water, onboarder: onboarder, tx: tx}
+	return &FarmService{farms: farms, plots: plots, water: water, waterDefaults: waterDefaults, onboarder: onboarder, tx: tx}
+}
+
+// estimateWater — "Bilmayman" tugmasi: manba (va viloyat) bo'yicha agronom
+// bazaga kiritgan taxminiy tarkib.
+func (s *FarmService) estimateWater(ctx context.Context, source domain.WaterSource, regionID *int32) (domain.WaterAnalysis, error) {
+	if !source.Valid() {
+		return domain.WaterAnalysis{}, domain.ErrInvalidWaterSource
+	}
+	w, err := s.waterDefaults.Estimate(ctx, source, regionID)
+	if err != nil {
+		return domain.WaterAnalysis{}, err
+	}
+	w.Source, w.IsEstimate = source, true
+	return w, nil
 }
 
 // OnboardInput — birinchi sozlash ekrani: viloyat, suv manbasi, tizim.
@@ -44,7 +60,7 @@ type OnboardInput struct {
 // birinchisi yangilanadi. Mijoz tarmoq uzilganda qayta yuborsa ham
 // ikki nusxa paydo bo'lmaydi.
 func (s *FarmService) Onboard(ctx context.Context, userID int64, in OnboardInput) (*domain.FarmOverview, error) {
-	estimate, err := domain.EstimateWater(in.WaterSource)
+	estimate, err := s.estimateWater(ctx, in.WaterSource, &in.RegionID)
 	if err != nil {
 		return nil, err
 	}

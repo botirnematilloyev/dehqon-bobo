@@ -22,11 +22,17 @@ type Deps struct {
 	// Onboarder — `user` moduliga ko'prik (users.onboarded_at). Adapter
 	// `cmd/api` da: farm `user` ni import qilmaydi.
 	Onboarder service.UserOnboarder
+
+	// Catalog va WaterDefaults — `catalog` moduliga ko'prik: agronom
+	// belgilagan standart o'g'itlar, parametrlar va suv tarkiblari.
+	Catalog       service.Catalog
+	WaterDefaults service.WaterDefaults
 }
 
 type Module struct {
-	handler *farmhttp.Handler
-	deps    Deps
+	handler  *farmhttp.Handler
+	settings *farmhttp.SettingsHandler
+	deps     Deps
 }
 
 func New(pool *pgxpool.Pool, deps Deps) *Module {
@@ -39,13 +45,15 @@ func New(pool *pgxpool.Pool, deps Deps) *Module {
 		tx = db.NewTxManager(pool)
 	}
 
-	farms := service.NewFarmService(farmRepo, plotRepo, waterRepo, deps.Onboarder, tx)
+	farms := service.NewFarmService(farmRepo, plotRepo, waterRepo, deps.WaterDefaults, deps.Onboarder, tx)
 	plots := service.NewPlotService(farms, plotRepo)
 	water := service.NewWaterService(farms, waterRepo, tx)
+	settings := service.NewSettingsService(farms, repository.NewSettingsRepository(pool), deps.Catalog)
 
 	return &Module{
-		handler: farmhttp.NewHandler(farms, plots, water, deps.UserIDFrom),
-		deps:    deps,
+		handler:  farmhttp.NewHandler(farms, plots, water, deps.UserIDFrom),
+		settings: farmhttp.NewSettingsHandler(settings, deps.UserIDFrom),
+		deps:     deps,
 	}
 }
 
@@ -76,6 +84,15 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 			r.Get("/water", m.handler.ActiveWater)
 			r.Get("/water/history", m.handler.WaterHistory)
 			r.Post("/water", m.handler.RecordWater)
+
+			// Xo'jalik sozlamalari: agronom standartining ustidan yoziladi.
+			// PUT — to'liq almashtirish, DELETE — standartga qaytarish.
+			r.Get("/fertilizers", m.settings.ListFertilizers)
+			r.Put("/fertilizers/{code}", m.settings.PutFertilizer)
+			r.Delete("/fertilizers/{code}", m.settings.ResetFertilizer)
+			r.Get("/parameters", m.settings.ListParameters)
+			r.Put("/parameters/{key}", m.settings.PutParameter)
+			r.Delete("/parameters/{key}", m.settings.ResetParameter)
 		})
 	})
 }

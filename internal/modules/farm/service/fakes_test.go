@@ -224,9 +224,14 @@ type fixture struct {
 	onboarder *fakeOnboarder
 	tx        *fakeTx
 
-	farmSvc  *FarmService
-	plotSvc  *PlotService
-	waterSvc *WaterService
+	waterDefs *fakeWaterDefaults
+	catalog   *fakeCatalog
+	settings  *fakeSettingsRepo
+
+	farmSvc     *FarmService
+	plotSvc     *PlotService
+	waterSvc    *WaterService
+	settingsSvc *SettingsService
 }
 
 func newFixture() *fixture {
@@ -237,8 +242,126 @@ func newFixture() *fixture {
 		onboarder: &fakeOnboarder{},
 		tx:        &fakeTx{},
 	}
-	f.farmSvc = NewFarmService(f.farms, f.plots, f.water, f.onboarder, f.tx)
+	f.waterDefs = newFakeWaterDefaults()
+	f.catalog = newFakeCatalog()
+	f.settings = newFakeSettingsRepo()
+	f.farmSvc = NewFarmService(f.farms, f.plots, f.water, f.waterDefs, f.onboarder, f.tx)
+	f.settingsSvc = NewSettingsService(f.farmSvc, f.settings, f.catalog)
 	f.plotSvc = NewPlotService(f.farmSvc, f.plots)
 	f.waterSvc = NewWaterService(f.farmSvc, f.water, f.tx)
 	return f
+}
+
+// ---------- water defaults (catalog) ----------
+
+type fakeWaterDefaults struct {
+	global   map[domain.WaterSource]domain.WaterAnalysis
+	regional map[int32]map[domain.WaterSource]domain.WaterAnalysis
+	calls    int
+}
+
+func newFakeWaterDefaults() *fakeWaterDefaults {
+	return &fakeWaterDefaults{
+		global: map[domain.WaterSource]domain.WaterAnalysis{
+			domain.WaterWell:   {EC: 1.0, Ca: 80, Mg: 30, HCO3Mmol: 4},
+			domain.WaterCanal:  {EC: 0.9, Ca: 70, Mg: 25, HCO3Mmol: 3.5},
+			domain.WaterTap:    {EC: 0.5, Ca: 50, Mg: 15, HCO3Mmol: 3},
+			domain.WaterFilter: {EC: 0.05, Ca: 2, Mg: 1, HCO3Mmol: 0.3},
+		},
+		regional: map[int32]map[domain.WaterSource]domain.WaterAnalysis{
+			11: {domain.WaterWell: {EC: 1.6, Ca: 140, Mg: 45, HCO3Mmol: 5.5}},
+		},
+	}
+}
+
+func (f *fakeWaterDefaults) Estimate(_ context.Context, source domain.WaterSource, regionID *int32) (domain.WaterAnalysis, error) {
+	f.calls++
+	if regionID != nil {
+		if w, ok := f.regional[*regionID][source]; ok {
+			return w, nil
+		}
+	}
+	w, ok := f.global[source]
+	if !ok {
+		return domain.WaterAnalysis{}, domain.ErrWaterDefaultMissing
+	}
+	return w, nil
+}
+
+// ---------- catalog ----------
+
+type fakeCatalog struct {
+	fertilizers []domain.FertilizerDef
+	params      []domain.ParamDef
+}
+
+func newFakeCatalog() *fakeCatalog {
+	return &fakeCatalog{
+		fertilizers: []domain.FertilizerDef{
+			{Code: "CaNO3", Formula: "Ca(NO3)2·4H2O", Kind: 1, Tank: 1, Elements: map[string]float64{"Ca": 16.972, "N_NO3": 11.863}, StockGL: ptr(600.0)},
+			{Code: "HNO3_38", Formula: "HNO3", Kind: 3, Tank: 3, ConcentrationPct: ptr(38.0), DensityGML: ptr(1.23)},
+		},
+		params: []domain.ParamDef{
+			{Key: "residual_hco3_mmol", Value: 0.5, Min: 0, Max: 3, FarmOverridable: true},
+			{Key: "water_ion_balance_tolerance_pct", Value: 10, Min: 1, Max: 50, FarmOverridable: false},
+		},
+	}
+}
+
+func (c *fakeCatalog) Fertilizers(context.Context) ([]domain.FertilizerDef, error) {
+	return c.fertilizers, nil
+}
+func (c *fakeCatalog) Parameters(context.Context) ([]domain.ParamDef, error) { return c.params, nil }
+
+// ---------- farm settings repo ----------
+
+type fakeSettingsRepo struct {
+	fert   map[int64]map[string]domain.FertilizerOverride
+	params map[int64]map[string]float64
+}
+
+func newFakeSettingsRepo() *fakeSettingsRepo {
+	return &fakeSettingsRepo{fert: map[int64]map[string]domain.FertilizerOverride{}, params: map[int64]map[string]float64{}}
+}
+
+func (r *fakeSettingsRepo) ListFertilizerOverrides(_ context.Context, farmID int64) ([]domain.FertilizerOverride, error) {
+	out := []domain.FertilizerOverride{}
+	for _, o := range r.fert[farmID] {
+		out = append(out, o)
+	}
+	return out, nil
+}
+
+func (r *fakeSettingsRepo) UpsertFertilizerOverride(_ context.Context, o *domain.FertilizerOverride) error {
+	if r.fert[o.FarmID] == nil {
+		r.fert[o.FarmID] = map[string]domain.FertilizerOverride{}
+	}
+	r.fert[o.FarmID][o.Code] = *o
+	return nil
+}
+
+func (r *fakeSettingsRepo) DeleteFertilizerOverride(_ context.Context, farmID int64, code string) error {
+	delete(r.fert[farmID], code)
+	return nil
+}
+
+func (r *fakeSettingsRepo) ListParamOverrides(_ context.Context, farmID int64) (map[string]float64, error) {
+	out := map[string]float64{}
+	for k, v := range r.params[farmID] {
+		out[k] = v
+	}
+	return out, nil
+}
+
+func (r *fakeSettingsRepo) UpsertParamOverride(_ context.Context, farmID int64, key string, value float64, _ int64) error {
+	if r.params[farmID] == nil {
+		r.params[farmID] = map[string]float64{}
+	}
+	r.params[farmID][key] = value
+	return nil
+}
+
+func (r *fakeSettingsRepo) DeleteParamOverride(_ context.Context, farmID int64, key string) error {
+	delete(r.params[farmID], key)
+	return nil
 }

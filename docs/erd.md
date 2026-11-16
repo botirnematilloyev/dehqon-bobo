@@ -301,6 +301,20 @@ OTP, urinishlar soni va Telegram login kodlari Redis'da saqlanadi. Ular uchun ja
 - **`symptoms` + `post_symptoms`** (shuningdek `season_issues`): belgilar ro'yxati (Marschner manbasi bo'yicha). Postlarni belgi bo'yicha qidirish uchun.
 - **`post_reports`**: moderatsiya — shikoyatlar.
 
+### 6. Sozlanadigan qiymatlar (migratsiya 000011)
+
+- **`calc_parameters`** — hisob parametrlari: qiymat, min/max, birlik va
+  `farm_overridable` belgisi.
+- **`farm_calc_parameters`** — xo'jalik o'zgartirishlari.
+- **`water_source_defaults`** — suv manbai taxminiy tarkibi, mamlakat va
+  viloyat bo'yicha.
+- **`fertilizers`** — kislota kuchi, monoeritma g/L, manba va tasdiq
+  ustunlari qo'shildi.
+- **`farm_fertilizers`** — kislota kuchi, zichlik va monoeritma qiymatlari
+  qo'shildi.
+
+To'liq tavsif: `docs/calc-parameters.md`.
+
 ## Keyingi bosqichga qoldirildi
 
 - `notifications` va `reminders`. Hozircha `user_sessions.fcm_token` yetarli.

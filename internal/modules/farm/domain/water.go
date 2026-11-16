@@ -54,24 +54,3 @@ func (w *WaterAnalysis) Validate() error {
 }
 
 func inRange(v, max float64) bool { return v >= 0 && v <= max }
-
-// EstimateWater — foydalanuvchi "Bilmayman" deganda manba bo'yicha
-// taxminiy qiymat. Bular TAXMIN: ilova ularni "taxminiy" deb ko'rsatadi
-// va laboratoriya tahlilini so'raydi. Agronom tasdig'idan keyin
-// viloyatlar bo'yicha aniqlashtiriladi.
-func EstimateWater(source WaterSource) (WaterAnalysis, error) {
-	w := WaterAnalysis{Source: source, IsEstimate: true}
-	switch source {
-	case WaterWell:
-		w.EC, w.Ca, w.Mg, w.HCO3Mmol = 1.0, 80, 30, 4.0
-	case WaterCanal:
-		w.EC, w.Ca, w.Mg, w.HCO3Mmol = 0.9, 70, 25, 3.5
-	case WaterTap:
-		w.EC, w.Ca, w.Mg, w.HCO3Mmol = 0.5, 50, 15, 3.0
-	case WaterFilter:
-		w.EC, w.Ca, w.Mg, w.HCO3Mmol = 0.05, 2, 1, 0.3
-	default:
-		return WaterAnalysis{}, ErrInvalidWaterSource
-	}
-	return w, nil
-}

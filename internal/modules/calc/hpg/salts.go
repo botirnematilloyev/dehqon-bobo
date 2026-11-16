@@ -18,6 +18,8 @@ const (
 var MacroSalts = []Salt{CaNO3, KNO3, NH4NO3, MgSO4, KH2PO4, K2SO4, MgNO3, CaCl2}
 
 // Salts — har bir tuzdagi element ulushi, %. HPG: saltCompositions.
+// Qiymatlar bazadan (fertilizer_elements / farm_fertilizers.label_percents),
+// HPG'ning standart tarkibi esa migratsiya seed'ida.
 type Salts struct {
 	CaNO3Ca, CaNO3NO3, CaNO3NH4 float64
 	KNO3K, KNO3NO3              float64
@@ -27,21 +29,6 @@ type Salts struct {
 	K2SO4K, K2SO4S              float64
 	MgNO3Mg, MgNO3NO3           float64
 	CaCl2Ca, CaCl2Cl            float64
-}
-
-// DefaultSalts — HPG'dagi boshlang'ich tarkib (toza tuzlar uchun nazariy).
-// Haqiqiy o'g'it yorlig'idan olingan foizlar bilan almashtirilishi kerak.
-func DefaultSalts() Salts {
-	return Salts{
-		CaNO3Ca: 16.972, CaNO3NO3: 11.863, CaNO3NH4: 0,
-		KNO3K: 38.672, KNO3NO3: 13.854,
-		NH4NO3NH4: 17.499, NH4NO3NO3: 17.499,
-		MgSO4Mg: 9.861, MgSO4S: 13.01,
-		KH2PO4K: 28.731, KH2PO4P: 22.761,
-		K2SO4K: 44.874, K2SO4S: 18.401,
-		MgNO3Mg: 9.479, MgNO3NO3: 10.925,
-		CaCl2Ca: 18.294, CaCl2Cl: 32.366,
-	}
 }
 
 // SaltMode — qaysi ixtiyoriy tuzlar ishlatiladi. HPG: useK2SO4, useMgNO3
@@ -183,7 +170,12 @@ func WeightDecimals(volume float64) int {
 // Jami alohida tuzlardan emas, yaxlitlanmagan yig'indidan hisoblanadi —
 // HPG'dagidek.
 func Weights(dose SaltGrams, volume float64) (SaltGrams, float64) {
-	d := WeightDecimals(volume)
+	return WeightsWithDecimals(dose, volume, WeightDecimals(volume))
+}
+
+// WeightsWithDecimals — tarozi aniqligi aniq berilgan holda (parametr
+// calc_parameters.weight_decimals; -1 bo'lsa Weights ishlatiladi).
+func WeightsWithDecimals(dose SaltGrams, volume float64, d int) (SaltGrams, float64) {
 	grams := func(v float64) float64 { return RoundTo(float64(v*volume)/10, d) }
 	out := SaltGrams{
 		CaNO3: grams(dose.CaNO3), KNO3: grams(dose.KNO3), NH4NO3: grams(dose.NH4NO3),
