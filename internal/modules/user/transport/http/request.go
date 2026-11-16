@@ -47,7 +47,7 @@ type UpdateProfileRequest struct {
 
 func (r TelegramVerifyRequest) Validate() error {
 	if len(r.Code) != 6 {
-		return errors.New("code must be 6 digits")
+		return validationError(msgCodeSixDigits)
 	}
 	return nil
 }
@@ -83,24 +83,24 @@ func parsePlatform(s *string) *domain.Platform {
 
 func (r RequestOTPRequest) Validate() error {
 	if r.Identifier == "" {
-		return errors.New("identifier is required")
+		return validationError(msgIdentifierRequired)
 	}
 	return nil
 }
 
 func (r VerifyOTPRequest) Validate() error {
 	if len(r.Code) != 6 {
-		return errors.New("code must be 6 digits")
+		return validationError(msgCodeSixDigits)
 	}
 	if r.Identifier == "" {
-		return errors.New("identifier is required")
+		return validationError(msgIdentifierRequired)
 	}
 	return nil
 }
 
 func (r RefreshRequest) Validate() error {
 	if r.RefreshToken == "" {
-		return errors.New("refresh token is required")
+		return validationError(msgRefreshRequired)
 	}
 	return nil
 }
@@ -109,17 +109,17 @@ func (r UpdateProfileRequest) Validate() error {
 	if r.FullName != nil {
 		name := strings.TrimSpace(*r.FullName)
 		if name == "" {
-			return errors.New("full name cannot be empty")
+			return validationError(msgFullNameEmpty)
 		}
 		if len([]rune(name)) > 100 {
-			return errors.New("full name is too long")
+			return validationError(msgFullNameTooLong)
 		}
 	}
 	if r.RegionID != nil && *r.RegionID <= 0 {
-		return errors.New("region id must be positive")
+		return validationError(msgRegionIDInvalid)
 	}
 	if r.DistrictID != nil && *r.DistrictID <= 0 {
-		return errors.New("district id must be positive")
+		return validationError(msgDistrictIDInvalid)
 	}
 	return nil
 }

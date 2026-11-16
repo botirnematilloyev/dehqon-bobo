@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"dehqon-bobo/internal/platform/i18n"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -41,7 +42,7 @@ func (h *AdminUserHandler) List(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("admin: list users failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeError(w, r, http.StatusInternalServerError, i18n.ErrInternal)
 		return
 	}
 
@@ -61,7 +62,7 @@ func (h *AdminUserHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *AdminUserHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil || id <= 0 {
-		writeError(w, http.StatusNotFound, "user not found")
+		writeError(w, r, http.StatusNotFound, msgUserNotFound)
 		return
 	}
 
@@ -71,7 +72,7 @@ func (h *AdminUserHandler) Get(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("admin: get user failed", "error", err, "user_id", id)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 

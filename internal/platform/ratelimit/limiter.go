@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"dehqon-bobo/internal/platform/i18n"
 	"fmt"
 	"log/slog"
 	"net"
@@ -43,8 +44,7 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 		if count > l.limit {
 			w.Header().Set("Retry-After", retryAfter)
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte(`{"error":"too many requests"}`))
+			i18n.WriteError(w, r, http.StatusTooManyRequests, i18n.ErrTooManyRequests)
 			return
 		}
 

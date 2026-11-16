@@ -93,7 +93,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 				var body ErrorResponse
 				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-				require.Equal(t, "missing or invalid authorization header", body.Error)
+				require.Equal(t, "auth.missing_token", body.Error)
 			})
 		}
 	})
@@ -113,7 +113,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 		var body ErrorResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-		require.Equal(t, "invalid token", body.Error)
+		require.Equal(t, "auth.invalid_token", body.Error)
 		require.NotContains(t, body.Error, "bad signature", "must not leak parser internals")
 	})
 }
@@ -176,7 +176,7 @@ func TestAuthMiddleware_SessionState(t *testing.T) {
 
 		var body ErrorResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-		require.Equal(t, "session is no longer valid", body.Error)
+		require.Equal(t, "auth.session_invalid", body.Error)
 	})
 
 	t.Run("fails closed when the check errors", func(t *testing.T) {

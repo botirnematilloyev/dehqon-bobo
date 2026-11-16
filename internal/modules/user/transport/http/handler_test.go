@@ -113,7 +113,7 @@ func TestHandler_RequestOTP(t *testing.T) {
 		NewHandler(svc).RequestOTP(rec, postJSON(t, `{"provider":`))
 
 		require.Equal(t, http.StatusBadRequest, rec.Code)
-		require.Equal(t, "invalid json body", decodeError(t, rec))
+		require.Equal(t, "common.invalid_json", decodeError(t, rec))
 		require.Empty(t, svc.requestOTPCalls, "service must not be reached")
 	})
 
@@ -134,7 +134,7 @@ func TestHandler_RequestOTP(t *testing.T) {
 		NewHandler(svc).RequestOTP(rec, postJSON(t, `{"provider":"fax","identifier":"a@b.uz"}`))
 
 		require.Equal(t, http.StatusBadRequest, rec.Code)
-		require.Equal(t, "unsupported provider", decodeError(t, rec))
+		require.Equal(t, "auth.unsupported_provider", decodeError(t, rec))
 		require.Empty(t, svc.requestOTPCalls)
 	})
 
@@ -145,7 +145,7 @@ func TestHandler_RequestOTP(t *testing.T) {
 		NewHandler(svc).RequestOTP(rec, postJSON(t, `{"provider":"email","identifier":"a@b.uz"}`))
 
 		require.Equal(t, http.StatusTooManyRequests, rec.Code)
-		require.Equal(t, "too many requests", decodeError(t, rec))
+		require.Equal(t, "common.too_many_requests", decodeError(t, rec))
 	})
 }
 
@@ -203,7 +203,7 @@ func TestHandler_VerifyOTP(t *testing.T) {
 		NewHandler(svc).VerifyOTP(rec, postJSON(t, validBody))
 
 		require.Equal(t, http.StatusBadRequest, rec.Code)
-		require.Equal(t, "invalid or expired otp code", decodeError(t, rec))
+		require.Equal(t, "auth.invalid_otp", decodeError(t, rec))
 	})
 }
 
@@ -235,7 +235,7 @@ func TestHandler_Refresh(t *testing.T) {
 		NewHandler(svc).Refresh(rec, postJSON(t, `{"refresh_token":"revoked"}`))
 
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
-		require.Equal(t, "session is no longer valid", decodeError(t, rec))
+		require.Equal(t, "auth.session_invalid", decodeError(t, rec))
 	})
 }
 
@@ -333,7 +333,7 @@ func TestHandler_VerifyTelegramLogin(t *testing.T) {
 		NewHandler(svc).VerifyTelegramLogin(rec, postJSON(t, `{"code":`))
 
 		require.Equal(t, http.StatusBadRequest, rec.Code)
-		require.Equal(t, "invalid json body", decodeError(t, rec))
+		require.Equal(t, "common.invalid_json", decodeError(t, rec))
 		require.Empty(t, svc.telegramCalls)
 	})
 
@@ -359,7 +359,7 @@ func TestHandler_VerifyTelegramLogin(t *testing.T) {
 		NewHandler(svc).VerifyTelegramLogin(rec, postJSON(t, `{"code":"000000"}`))
 
 		require.Equal(t, http.StatusBadRequest, rec.Code)
-		require.Equal(t, "invalid or expired login code", decodeError(t, rec))
+		require.Equal(t, "auth.invalid_login_code", decodeError(t, rec))
 	})
 }
 

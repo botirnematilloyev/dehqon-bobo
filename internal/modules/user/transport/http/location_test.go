@@ -79,7 +79,7 @@ func TestLocationHandler_Regions(t *testing.T) {
 		NewLocationHandler(svc).Regions(rec, httptest.NewRequest(http.MethodGet, "/regions", nil))
 
 		require.Equal(t, http.StatusInternalServerError, rec.Code)
-		require.Equal(t, "internal server error", decodeError(t, rec))
+		require.Equal(t, "common.internal_error", decodeError(t, rec))
 	})
 }
 

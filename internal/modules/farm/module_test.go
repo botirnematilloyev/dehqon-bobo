@@ -27,7 +27,7 @@ func TestRegisterRoutes_AllRequireAuth(t *testing.T) {
 	router.Route("/api/v1", module.RegisterRoutes)
 
 	routes := []struct{ method, path string }{
-		{http.MethodPost, "/api/v1/onboarding"},
+		{http.MethodPost, "/api/v1/me/onboarding"},
 		{http.MethodGet, "/api/v1/farms"},
 		{http.MethodPost, "/api/v1/farms"},
 		{http.MethodGet, "/api/v1/farms/1"},
@@ -36,16 +36,16 @@ func TestRegisterRoutes_AllRequireAuth(t *testing.T) {
 		{http.MethodGet, "/api/v1/farms/1/plots"},
 		{http.MethodPost, "/api/v1/farms/1/plots"},
 		{http.MethodPatch, "/api/v1/farms/1/plots/2"},
-		{http.MethodDelete, "/api/v1/farms/1/plots/2"},
-		{http.MethodGet, "/api/v1/farms/1/water"},
-		{http.MethodGet, "/api/v1/farms/1/water/history"},
-		{http.MethodPost, "/api/v1/farms/1/water"},
-		{http.MethodGet, "/api/v1/farms/1/fertilizers"},
-		{http.MethodPut, "/api/v1/farms/1/fertilizers/CaNO3"},
-		{http.MethodDelete, "/api/v1/farms/1/fertilizers/CaNO3"},
-		{http.MethodGet, "/api/v1/farms/1/parameters"},
-		{http.MethodPut, "/api/v1/farms/1/parameters/residual_hco3_mmol"},
-		{http.MethodDelete, "/api/v1/farms/1/parameters/residual_hco3_mmol"},
+		{http.MethodPost, "/api/v1/farms/1/plots/2/archive"},
+		{http.MethodGet, "/api/v1/farms/1/water-analyses"},
+		{http.MethodGet, "/api/v1/farms/1/water-analyses/active"},
+		{http.MethodPost, "/api/v1/farms/1/water-analyses"},
+		{http.MethodGet, "/api/v1/farms/1/settings/fertilizers"},
+		{http.MethodPut, "/api/v1/farms/1/settings/fertilizers/CaNO3"},
+		{http.MethodDelete, "/api/v1/farms/1/settings/fertilizers/CaNO3"},
+		{http.MethodGet, "/api/v1/farms/1/settings/calc-parameters"},
+		{http.MethodPut, "/api/v1/farms/1/settings/calc-parameters/residual_hco3_mmol"},
+		{http.MethodDelete, "/api/v1/farms/1/settings/calc-parameters/residual_hco3_mmol"},
 	}
 	for _, rt := range routes {
 		rec := httptest.NewRecorder()

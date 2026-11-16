@@ -20,6 +20,7 @@ import (
 	"dehqon-bobo/internal/platform/config"
 	"dehqon-bobo/internal/platform/db"
 	"dehqon-bobo/internal/platform/health"
+	"dehqon-bobo/internal/platform/i18n"
 	"dehqon-bobo/internal/platform/ratelimit"
 
 	"github.com/go-chi/chi/v5"
@@ -92,6 +93,10 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
+	// Til: Accept-Language → javob va xatolar shu tilda (uz, uz-Cyrl, ru, en).
+	router.Use(i18n.Middleware)
+	router.NotFound(i18n.NotFoundHandler)
+	router.MethodNotAllowed(i18n.MethodNotAllowedHandler)
 
 	// RealIP Logger'dan OLDIN: aks holda logda mijoz emas, proxy manzili turadi.
 	if cfg.HTTP.TrustProxy {

@@ -61,12 +61,12 @@ ekanini tekshiradi.
 
 ```
 PATCH /admin/catalog/fertilizers/{code}      {"elements":{...}, "stock_g_l":..., "concentration_pct":..., "density_g_ml":..., "is_reviewed":true}
-PUT   /admin/catalog/water-defaults/{source}?region_id=3   {"ec":1.6,"ca":140,"mg":45,"hco3_mmol":5.5,"note":"...","is_reviewed":true}
-PATCH /admin/catalog/parameters/{key}         {"value":0.7,"is_reviewed":true}
+PUT   /admin/catalog/water-sources/{source}?region_id=3   {"ec":1.6,"ca":140,"mg":45,"hco3_mmol":5.5,"note":"...","is_reviewed":true}
+PATCH /admin/catalog/calc-parameters/{key}         {"value":0.7,"is_reviewed":true}
 ```
 
 **O'qish** (har bir foydalanuvchi): `GET /catalog/fertilizers`,
-`GET /catalog/water-defaults`, `GET /catalog/parameters`.
+`GET /catalog/water-sources`, `GET /catalog/calc-parameters`.
 
 **Xo'jalik** (egasi, `/api/v1/farms/{farmID}`):
 

@@ -8,6 +8,7 @@ import (
 
 	"dehqon-bobo/internal/modules/farm/domain"
 	"dehqon-bobo/internal/modules/farm/service"
+	"dehqon-bobo/internal/platform/i18n"
 )
 
 type FarmService interface {
@@ -50,14 +51,14 @@ func NewHandler(farms FarmService, plots PlotService, water WaterService, userID
 func (h *Handler) user(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	id, ok := h.userIDFrom(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		i18n.WriteError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 	}
 	return id, ok
 }
 
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		i18n.WriteError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
 		return false
 	}
 	return true
@@ -70,7 +71,7 @@ func (h *Handler) userAndFarm(w http.ResponseWriter, r *http.Request) (int64, in
 	}
 	farmID, err := pathID(r, "farmID")
 	if err != nil {
-		respondError(w, err, "parse farm id")
+		respondError(w, r, err, "parse farm id")
 		return 0, 0, false
 	}
 	return userID, farmID, true
@@ -89,12 +90,12 @@ func (h *Handler) Onboard(w http.ResponseWriter, r *http.Request) {
 	}
 	in, err := req.toInput()
 	if err != nil {
-		respondError(w, err, "onboard")
+		respondError(w, r, err, "onboard")
 		return
 	}
 	overview, err := h.farms.Onboard(r.Context(), userID, in)
 	if err != nil {
-		respondError(w, err, "onboard")
+		respondError(w, r, err, "onboard")
 		return
 	}
 	writeJSON(w, http.StatusOK, toOverviewResponse(overview))
@@ -109,7 +110,7 @@ func (h *Handler) ListFarms(w http.ResponseWriter, r *http.Request) {
 	}
 	farms, err := h.farms.List(r.Context(), userID)
 	if err != nil {
-		respondError(w, err, "list farms")
+		respondError(w, r, err, "list farms")
 		return
 	}
 	res := FarmListResponse{Farms: make([]FarmResponse, 0, len(farms))}
@@ -130,12 +131,12 @@ func (h *Handler) CreateFarm(w http.ResponseWriter, r *http.Request) {
 	}
 	in, err := req.toInput()
 	if err != nil {
-		respondError(w, err, "create farm")
+		respondError(w, r, err, "create farm")
 		return
 	}
 	farm, err := h.farms.Create(r.Context(), userID, in)
 	if err != nil {
-		respondError(w, err, "create farm")
+		respondError(w, r, err, "create farm")
 		return
 	}
 	writeJSON(w, http.StatusCreated, toFarmResponse(*farm))
@@ -148,7 +149,7 @@ func (h *Handler) GetFarm(w http.ResponseWriter, r *http.Request) {
 	}
 	overview, err := h.farms.Get(r.Context(), userID, farmID)
 	if err != nil {
-		respondError(w, err, "get farm")
+		respondError(w, r, err, "get farm")
 		return
 	}
 	writeJSON(w, http.StatusOK, toOverviewResponse(overview))
@@ -165,12 +166,12 @@ func (h *Handler) UpdateFarm(w http.ResponseWriter, r *http.Request) {
 	}
 	in, err := req.toInput()
 	if err != nil {
-		respondError(w, err, "update farm")
+		respondError(w, r, err, "update farm")
 		return
 	}
 	farm, err := h.farms.Update(r.Context(), userID, farmID, in)
 	if err != nil {
-		respondError(w, err, "update farm")
+		respondError(w, r, err, "update farm")
 		return
 	}
 	writeJSON(w, http.StatusOK, toFarmResponse(*farm))
@@ -182,7 +183,7 @@ func (h *Handler) DeleteFarm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.farms.Delete(r.Context(), userID, farmID); err != nil {
-		respondError(w, err, "delete farm")
+		respondError(w, r, err, "delete farm")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -198,7 +199,7 @@ func (h *Handler) ListPlots(w http.ResponseWriter, r *http.Request) {
 	includeArchived := r.URL.Query().Get("archived") == "true"
 	plots, err := h.plots.List(r.Context(), userID, farmID, includeArchived)
 	if err != nil {
-		respondError(w, err, "list plots")
+		respondError(w, r, err, "list plots")
 		return
 	}
 	writeJSON(w, http.StatusOK, PlotListResponse{Plots: toPlotResponses(plots)})
@@ -215,7 +216,7 @@ func (h *Handler) CreatePlot(w http.ResponseWriter, r *http.Request) {
 	}
 	plot, err := h.plots.Create(r.Context(), userID, farmID, req.toInput())
 	if err != nil {
-		respondError(w, err, "create plot")
+		respondError(w, r, err, "create plot")
 		return
 	}
 	writeJSON(w, http.StatusCreated, toPlotResponse(*plot))
@@ -228,7 +229,7 @@ func (h *Handler) UpdatePlot(w http.ResponseWriter, r *http.Request) {
 	}
 	plotID, err := pathID(r, "plotID")
 	if err != nil {
-		respondError(w, err, "parse plot id")
+		respondError(w, r, err, "parse plot id")
 		return
 	}
 	var req PlotRequest
@@ -237,7 +238,7 @@ func (h *Handler) UpdatePlot(w http.ResponseWriter, r *http.Request) {
 	}
 	plot, err := h.plots.Update(r.Context(), userID, farmID, plotID, req.toInput())
 	if err != nil {
-		respondError(w, err, "update plot")
+		respondError(w, r, err, "update plot")
 		return
 	}
 	writeJSON(w, http.StatusOK, toPlotResponse(*plot))
@@ -250,11 +251,11 @@ func (h *Handler) ArchivePlot(w http.ResponseWriter, r *http.Request) {
 	}
 	plotID, err := pathID(r, "plotID")
 	if err != nil {
-		respondError(w, err, "parse plot id")
+		respondError(w, r, err, "parse plot id")
 		return
 	}
 	if err := h.plots.Archive(r.Context(), userID, farmID, plotID); err != nil {
-		respondError(w, err, "archive plot")
+		respondError(w, r, err, "archive plot")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -269,7 +270,7 @@ func (h *Handler) ActiveWater(w http.ResponseWriter, r *http.Request) {
 	}
 	water, err := h.water.Active(r.Context(), userID, farmID)
 	if err != nil {
-		respondError(w, err, "get water analysis")
+		respondError(w, r, err, "get water analysis")
 		return
 	}
 	writeJSON(w, http.StatusOK, toWaterResponse(*water))
@@ -284,14 +285,14 @@ func (h *Handler) WaterHistory(w http.ResponseWriter, r *http.Request) {
 	if raw := r.URL.Query().Get("limit"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n <= 0 {
-			writeError(w, http.StatusBadRequest, "invalid limit")
+			i18n.WriteError(w, r, http.StatusBadRequest, msgInvalidLimit)
 			return
 		}
 		limit = n
 	}
 	list, err := h.water.History(r.Context(), userID, farmID, limit)
 	if err != nil {
-		respondError(w, err, "list water analyses")
+		respondError(w, r, err, "list water analyses")
 		return
 	}
 	res := WaterHistoryResponse{Analyses: make([]WaterResponse, 0, len(list))}
@@ -312,12 +313,12 @@ func (h *Handler) RecordWater(w http.ResponseWriter, r *http.Request) {
 	}
 	in, err := req.toInput()
 	if err != nil {
-		respondError(w, err, "record water analysis")
+		respondError(w, r, err, "record water analysis")
 		return
 	}
 	water, err := h.water.Record(r.Context(), userID, farmID, in)
 	if err != nil {
-		respondError(w, err, "record water analysis")
+		respondError(w, r, err, "record water analysis")
 		return
 	}
 	writeJSON(w, http.StatusCreated, toWaterResponse(*water))

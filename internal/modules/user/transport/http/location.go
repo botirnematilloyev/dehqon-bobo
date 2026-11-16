@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"dehqon-bobo/internal/platform/i18n"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -28,7 +29,7 @@ func (h *LocationHandler) Regions(w http.ResponseWriter, r *http.Request) {
 	regions, err := h.locations.ListRegions(r.Context())
 	if err != nil {
 		slog.Error("list regions failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeError(w, r, http.StatusInternalServerError, i18n.ErrInternal)
 		return
 	}
 
@@ -44,14 +45,14 @@ func (h *LocationHandler) Regions(w http.ResponseWriter, r *http.Request) {
 func (h *LocationHandler) Districts(w http.ResponseWriter, r *http.Request) {
 	regionID, err := parseOptionalInt32(r.URL.Query().Get("region_id"))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "region_id must be a positive integer")
+		writeError(w, r, http.StatusBadRequest, msgRegionIDInvalid)
 		return
 	}
 
 	districts, err := h.locations.ListDistricts(r.Context(), regionID)
 	if err != nil {
 		slog.Error("list districts failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeError(w, r, http.StatusInternalServerError, i18n.ErrInternal)
 		return
 	}
 

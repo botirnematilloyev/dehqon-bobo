@@ -10,6 +10,7 @@ import (
 
 	"dehqon-bobo/internal/modules/catalog/domain"
 	"dehqon-bobo/internal/modules/catalog/service"
+	"dehqon-bobo/internal/platform/i18n"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -128,33 +129,37 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
-}
-
-func respondError(w http.ResponseWriter, err error, op string) {
+// statusFromError — domain xatosi → HTTP status va xabar kaliti.
+func statusFromError(err error) (int, i18n.Key) {
 	switch {
 	case errors.Is(err, domain.ErrFertilizerNotFound):
-		writeError(w, http.StatusNotFound, "fertilizer not found")
+		return http.StatusNotFound, msgFertilizerNotFound
 	case errors.Is(err, domain.ErrParameterNotFound):
-		writeError(w, http.StatusNotFound, "parameter not found")
+		return http.StatusNotFound, msgParameterNotFound
 	case errors.Is(err, domain.ErrWaterDefaultNotFound):
-		writeError(w, http.StatusNotFound, "water default not found")
+		return http.StatusNotFound, msgWaterDefaultNotFound
 	case errors.Is(err, domain.ErrInvalidElements):
-		writeError(w, http.StatusBadRequest, err.Error())
+		return http.StatusBadRequest, msgInvalidElements
 	case errors.Is(err, domain.ErrOutOfRange):
-		writeError(w, http.StatusBadRequest, "value outside the allowed range")
+		return http.StatusBadRequest, msgOutOfRange
 	case errors.Is(err, domain.ErrInvalidValue):
-		writeError(w, http.StatusBadRequest, "invalid value")
+		return http.StatusBadRequest, msgInvalidValue
 	default:
-		slog.Error(op+" failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		return http.StatusInternalServerError, i18n.ErrInternal
 	}
+}
+
+func respondError(w http.ResponseWriter, r *http.Request, err error, op string) {
+	status, key := statusFromError(err)
+	if status == http.StatusInternalServerError {
+		slog.Error(op+" failed", "error", err)
+	}
+	i18n.WriteError(w, r, status, key)
 }
 
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		i18n.WriteError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
 		return false
 	}
 	return true
@@ -165,7 +170,7 @@ func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 func (h *Handler) ListFertilizers(w http.ResponseWriter, r *http.Request) {
 	list, err := h.catalog.Fertilizers(r.Context())
 	if err != nil {
-		respondError(w, err, "list fertilizers")
+		respondError(w, r, err, "list fertilizers")
 		return
 	}
 	out := make([]FertilizerResponse, 0, len(list))
@@ -178,27 +183,27 @@ func (h *Handler) ListFertilizers(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListWaterDefaults(w http.ResponseWriter, r *http.Request) {
 	list, err := h.catalog.WaterDefaults(r.Context())
 	if err != nil {
-		respondError(w, err, "list water defaults")
+		respondError(w, r, err, "list water defaults")
 		return
 	}
 	out := make([]WaterDefaultResponse, 0, len(list))
 	for _, x := range list {
 		out = append(out, toWater(x))
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"water_defaults": out})
+	writeJSON(w, http.StatusOK, map[string]any{"water_sources": out})
 }
 
 func (h *Handler) ListParameters(w http.ResponseWriter, r *http.Request) {
 	list, err := h.catalog.Parameters(r.Context())
 	if err != nil {
-		respondError(w, err, "list parameters")
+		respondError(w, r, err, "list parameters")
 		return
 	}
 	out := make([]ParameterResponse, 0, len(list))
 	for _, p := range list {
 		out = append(out, toParam(p))
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"parameters": out})
+	writeJSON(w, http.StatusOK, map[string]any{"calc_parameters": out})
 }
 
 // ---------- agronom ----------
@@ -216,7 +221,7 @@ type FertilizerPatchRequest struct {
 func (h *Handler) UpdateFertilizer(w http.ResponseWriter, r *http.Request) {
 	uid, ok := h.userIDFrom(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		i18n.WriteError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 	var req FertilizerPatchRequest
@@ -225,7 +230,7 @@ func (h *Handler) UpdateFertilizer(w http.ResponseWriter, r *http.Request) {
 	}
 	f, err := h.catalog.UpdateFertilizer(r.Context(), uid, chi.URLParam(r, "code"), service.FertilizerPatch(req))
 	if err != nil {
-		respondError(w, err, "update fertilizer")
+		respondError(w, r, err, "update fertilizer")
 		return
 	}
 	writeJSON(w, http.StatusOK, toFertilizer(*f))
@@ -246,23 +251,23 @@ type WaterDefaultRequest struct {
 	IsReviewed bool     `json:"is_reviewed"`
 }
 
-// PutWaterDefault — PUT /admin/catalog/water-defaults/{source}?region_id=3
+// PutWaterDefault — PUT /admin/catalog/water-sources/{source}?region_id=3
 func (h *Handler) PutWaterDefault(w http.ResponseWriter, r *http.Request) {
 	uid, ok := h.userIDFrom(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		i18n.WriteError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 	source, ok := sourceFromName(chi.URLParam(r, "source"))
 	if !ok {
-		writeError(w, http.StatusBadRequest, "source must be well, canal, tap or filter")
+		i18n.WriteError(w, r, http.StatusBadRequest, msgInvalidWaterSource)
 		return
 	}
 	var regionID *int32
 	if raw := r.URL.Query().Get("region_id"); raw != "" {
 		n, err := strconv.ParseInt(raw, 10, 32)
 		if err != nil || n <= 0 {
-			writeError(w, http.StatusBadRequest, "invalid region_id")
+			i18n.WriteError(w, r, http.StatusBadRequest, msgInvalidRegion)
 			return
 		}
 		v := int32(n)
@@ -277,7 +282,7 @@ func (h *Handler) PutWaterDefault(w http.ResponseWriter, r *http.Request) {
 		Cl: req.Cl, SO4: req.SO4, NO3: req.NO3, HCO3Mmol: req.HCO3Mmol, Note: req.Note, IsReviewed: req.IsReviewed,
 	})
 	if err != nil {
-		respondError(w, err, "upsert water default")
+		respondError(w, r, err, "upsert water default")
 		return
 	}
 	writeJSON(w, http.StatusOK, toWater(*saved))
@@ -291,7 +296,7 @@ type ParameterRequest struct {
 func (h *Handler) UpdateParameter(w http.ResponseWriter, r *http.Request) {
 	uid, ok := h.userIDFrom(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		i18n.WriteError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 	var req ParameterRequest
@@ -299,12 +304,12 @@ func (h *Handler) UpdateParameter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Value == nil {
-		writeError(w, http.StatusBadRequest, "value is required")
+		i18n.WriteError(w, r, http.StatusBadRequest, msgValueRequired)
 		return
 	}
 	p, err := h.catalog.UpdateParameter(r.Context(), uid, chi.URLParam(r, "key"), *req.Value, req.IsReviewed)
 	if err != nil {
-		respondError(w, err, "update parameter")
+		respondError(w, r, err, "update parameter")
 		return
 	}
 	writeJSON(w, http.StatusOK, toParam(*p))

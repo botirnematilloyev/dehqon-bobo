@@ -178,6 +178,8 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(userhttp.AuthMiddleware(m.tokenManager, m.AuthService))
 			r.Post("/logout", m.handler.Logout)
+			// Barcha qurilmalardan chiqish — /auth ostida, /logout yonida.
+			r.Post("/logout-all", m.handler.LogoutAll)
 		})
 	})
 
@@ -192,9 +194,9 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 		r.Get("/me", m.profileHandler.Me)
 		r.Patch("/me", m.profileHandler.UpdateMe)
 
-		r.Get("/sessions", m.handler.Sessions)
-		r.Delete("/sessions/{id}", m.handler.RevokeSession)
-		r.Post("/logout-all", m.handler.LogoutAll)
+		// Sessiyalar foydalanuvchining o'ziga tegishli — /me ostida.
+		r.Get("/me/sessions", m.handler.Sessions)
+		r.Delete("/me/sessions/{id}", m.handler.RevokeSession)
 	})
 
 	// `r.Route("/admin/users")` EMAS, guruh: `submission` moduli ham

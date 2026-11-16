@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"dehqon-bobo/internal/modules/user/domain"
+	"dehqon-bobo/internal/platform/i18n"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -38,24 +39,24 @@ func AuthMiddleware(parser TokenParser, sessions SessionChecker) func(http.Handl
 			token, ok := strings.CutPrefix(header, "Bearer ")
 
 			if !ok || token == "" {
-				writeError(w, http.StatusUnauthorized, "missing or invalid authorization header")
+				writeError(w, r, http.StatusUnauthorized, msgMissingToken)
 				return
 			}
 
 			userID, sessionID, err := parser.ParseAccessToken(token)
 			if err != nil {
-				writeError(w, http.StatusUnauthorized, "invalid token")
+				writeError(w, r, http.StatusUnauthorized, msgInvalidToken)
 				return
 			}
 
 			revoked, err := sessions.IsSessionRevoked(r.Context(), sessionID)
 			if err != nil {
 				slog.Error("auth: session check failed", "error", err)
-				writeError(w, http.StatusServiceUnavailable, "service unavailable")
+				writeError(w, r, http.StatusServiceUnavailable, i18n.ErrServiceUnavailable)
 				return
 			}
 			if revoked {
-				writeError(w, http.StatusUnauthorized, "session is no longer valid")
+				writeError(w, r, http.StatusUnauthorized, msgSessionInvalid)
 				return
 			}
 
@@ -100,19 +101,19 @@ func RequirePermission(roles RoleReader, allowed Permission) func(http.Handler) 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userID, ok := UserIDFromContext(r.Context())
 			if !ok {
-				writeError(w, http.StatusUnauthorized, "unauthorized")
+				writeError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 				return
 			}
 
 			role, err := roles.Role(r.Context(), userID)
 			if err != nil {
 				slog.Error("authz: role lookup failed", "error", err, "user_id", userID)
-				writeError(w, http.StatusServiceUnavailable, "service unavailable")
+				writeError(w, r, http.StatusServiceUnavailable, i18n.ErrServiceUnavailable)
 				return
 			}
 
 			if !allowed(role) {
-				writeError(w, http.StatusForbidden, "forbidden")
+				writeError(w, r, http.StatusForbidden, i18n.ErrForbidden)
 				return
 			}
 

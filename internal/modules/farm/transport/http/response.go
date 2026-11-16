@@ -7,11 +7,8 @@ import (
 	"net/http"
 
 	"dehqon-bobo/internal/modules/farm/domain"
+	"dehqon-bobo/internal/platform/i18n"
 )
-
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -21,49 +18,58 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	}
 }
 
-func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, ErrorResponse{Error: message})
-}
-
-func statusFromError(err error) (int, string) {
+// statusFromError — domain xatosi → HTTP status va xabar kaliti.
+func statusFromError(err error) (int, i18n.Key) {
 	switch {
 	case errors.Is(err, domain.ErrFarmNotFound):
-		return http.StatusNotFound, "farm not found"
+		return http.StatusNotFound, msgFarmNotFound
 	case errors.Is(err, domain.ErrPlotNotFound):
-		return http.StatusNotFound, "plot not found"
+		return http.StatusNotFound, msgPlotNotFound
 	case errors.Is(err, domain.ErrWaterAnalysisNotFound):
-		return http.StatusNotFound, "water analysis not found"
+		return http.StatusNotFound, msgWaterAnalysisNotFound
+	case errors.Is(err, domain.ErrFertilizerNotFound):
+		return http.StatusNotFound, msgFertilizerNotFound
+	case errors.Is(err, domain.ErrParameterNotFound):
+		return http.StatusNotFound, msgParameterNotFound
+
+	case errors.Is(err, domain.ErrParameterNotOverridable):
+		return http.StatusForbidden, msgParameterAgronomist
 
 	case errors.Is(err, domain.ErrInvalidName):
-		return http.StatusBadRequest, "name must be 1-100 characters"
+		return http.StatusBadRequest, msgInvalidName
 	case errors.Is(err, domain.ErrInvalidLocation):
-		return http.StatusBadRequest, "invalid region or district"
+		return http.StatusBadRequest, msgInvalidLocation
 	case errors.Is(err, domain.ErrInvalidSystemType):
-		return http.StatusBadRequest, "system_type must be greenhouse_soil, substrate, hydroponics or open_field"
+		return http.StatusBadRequest, msgInvalidSystemType
 	case errors.Is(err, domain.ErrInvalidMixing):
-		return http.StatusBadRequest, "mixing_method must be direct or ab; ab needs injector_ratio and stock_tank_l"
+		return http.StatusBadRequest, msgInvalidMixing
 	case errors.Is(err, domain.ErrInvalidWaterSource):
-		return http.StatusBadRequest, "source must be well, canal, tap or filter"
+		return http.StatusBadRequest, msgInvalidWaterSource
 	case errors.Is(err, domain.ErrInvalidWaterValue):
-		return http.StatusBadRequest, "ec, ca, mg and hco3_mmol are required and must be in a realistic range"
+		return http.StatusBadRequest, msgInvalidWaterValue
 	case errors.Is(err, domain.ErrInvalidArea):
-		return http.StatusBadRequest, "area and volume must be positive"
-	case errors.Is(err, domain.ErrWaterDefaultMissing):
-		return http.StatusUnprocessableEntity, "no default water composition for this source; enter a lab analysis"
+		return http.StatusBadRequest, msgInvalidArea
+	case errors.Is(err, domain.ErrInvalidElements):
+		return http.StatusBadRequest, msgInvalidElements
+	case errors.Is(err, domain.ErrInvalidSetting):
+		return http.StatusBadRequest, msgSettingOutOfRange
 	case errors.Is(err, errInvalidID):
-		return http.StatusBadRequest, "invalid id"
+		return http.StatusBadRequest, i18n.ErrInvalidID
+
+	case errors.Is(err, domain.ErrWaterDefaultMissing):
+		return http.StatusUnprocessableEntity, msgWaterDefaultMissing
 
 	default:
-		return http.StatusInternalServerError, "internal server error"
+		return http.StatusInternalServerError, i18n.ErrInternal
 	}
 }
 
-func respondError(w http.ResponseWriter, err error, op string) {
-	status, msg := statusFromError(err)
+func respondError(w http.ResponseWriter, r *http.Request, err error, op string) {
+	status, key := statusFromError(err)
 	if status == http.StatusInternalServerError {
 		slog.Error(op+" failed", "error", err)
 	}
-	writeError(w, status, msg)
+	i18n.WriteError(w, r, status, key)
 }
 
 type FarmResponse struct {

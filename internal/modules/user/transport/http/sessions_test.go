@@ -22,9 +22,9 @@ func sessionsRouter(h *Handler, userID, sessionID int64) http.Handler {
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	})
-	r.Get("/sessions", h.Sessions)
-	r.Delete("/sessions/{id}", h.RevokeSession)
-	r.Post("/logout-all", h.LogoutAll)
+	r.Get("/me/sessions", h.Sessions)
+	r.Delete("/me/sessions/{id}", h.RevokeSession)
+	r.Post("/auth/logout-all", h.LogoutAll)
 	return r
 }
 
@@ -40,7 +40,7 @@ func TestHandler_Sessions(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		sessionsRouter(NewHandler(svc), 42, 7).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/sessions", nil))
+			ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/me/sessions", nil))
 
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.Equal(t, []int64{42}, svc.listSessionsCalls)
@@ -64,7 +64,7 @@ func TestHandler_Sessions(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		sessionsRouter(NewHandler(svc), 42, 7).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/sessions", nil))
+			ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/me/sessions", nil))
 
 		require.NotContains(t, rec.Body.String(), "super-secret-hash")
 		require.NotContains(t, rec.Body.String(), "refresh")
@@ -75,7 +75,7 @@ func TestHandler_Sessions(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		sessionsRouter(NewHandler(svc), 42, 7).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/sessions", nil))
+			ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/me/sessions", nil))
 
 		require.Contains(t, rec.Body.String(), `"sessions":[]`)
 	})
@@ -87,7 +87,7 @@ func TestHandler_RevokeSession(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		sessionsRouter(NewHandler(svc), 42, 7).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/sessions/9", nil))
+			ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/me/sessions/9", nil))
 
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.Equal(t, [][2]int64{{42, 9}}, svc.revokeCalls)
@@ -100,7 +100,7 @@ func TestHandler_RevokeSession(t *testing.T) {
 				rec := httptest.NewRecorder()
 
 				sessionsRouter(NewHandler(svc), 42, 7).
-					ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/sessions/"+id, nil))
+					ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/me/sessions/"+id, nil))
 
 				require.Equal(t, http.StatusBadRequest, rec.Code)
 				require.Empty(t, svc.revokeCalls)
@@ -113,10 +113,10 @@ func TestHandler_RevokeSession(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		sessionsRouter(NewHandler(svc), 42, 7).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/sessions/9", nil))
+			ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/me/sessions/9", nil))
 
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
-		require.Equal(t, "session is no longer valid", decodeError(t, rec))
+		require.Equal(t, "auth.session_invalid", decodeError(t, rec))
 	})
 }
 
@@ -126,7 +126,7 @@ func TestHandler_LogoutAll(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		sessionsRouter(NewHandler(svc), 42, 7).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/logout-all", nil))
+			ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/auth/logout-all", nil))
 
 		require.Equal(t, http.StatusOK, rec.Code)
 		require.Equal(t, []int64{42}, svc.logoutAllCalls)
@@ -137,9 +137,9 @@ func TestHandler_LogoutAll(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		sessionsRouter(NewHandler(svc), 42, 7).
-			ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/logout-all", nil))
+			ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/auth/logout-all", nil))
 
 		require.Equal(t, http.StatusInternalServerError, rec.Code)
-		require.Equal(t, "internal server error", decodeError(t, rec))
+		require.Equal(t, "common.internal_error", decodeError(t, rec))
 	})
 }

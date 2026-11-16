@@ -70,12 +70,12 @@ func newRouter(farms FarmService, water WaterService, loggedIn bool) http.Handle
 	h := NewHandler(farms, fakePlots{}, water, userID)
 
 	r := chi.NewRouter()
-	r.Post("/onboarding", h.Onboard)
+	r.Post("/me/onboarding", h.Onboard)
 	r.Get("/farms/{farmID}", h.GetFarm)
 	r.Post("/farms/{farmID}/plots", h.CreatePlot)
 	r.Patch("/farms/{farmID}/plots/{plotID}", h.UpdatePlot)
-	r.Get("/farms/{farmID}/water", h.ActiveWater)
-	r.Post("/farms/{farmID}/water", h.RecordWater)
+	r.Get("/farms/{farmID}/water-analyses/active", h.ActiveWater)
+	r.Post("/farms/{farmID}/water-analyses", h.RecordWater)
 	return r
 }
 
@@ -97,7 +97,7 @@ func sampleOverview() *domain.FarmOverview {
 func TestOnboard(t *testing.T) {
 	t.Run("parses enums and returns the overview with readable names", func(t *testing.T) {
 		farms := &fakeFarms{overview: sampleOverview()}
-		rec := do(newRouter(farms, &fakeWater{}, true), http.MethodPost, "/onboarding",
+		rec := do(newRouter(farms, &fakeWater{}, true), http.MethodPost, "/me/onboarding",
 			`{"region_id":10,"district_id":20,"water_source":"well","system_type":"substrate"}`)
 
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
@@ -125,14 +125,14 @@ func TestOnboard(t *testing.T) {
 	for name, body := range cases {
 		t.Run("400 for "+name, func(t *testing.T) {
 			farms := &fakeFarms{overview: sampleOverview()}
-			rec := do(newRouter(farms, &fakeWater{}, true), http.MethodPost, "/onboarding", body)
+			rec := do(newRouter(farms, &fakeWater{}, true), http.MethodPost, "/me/onboarding", body)
 			require.Equal(t, http.StatusBadRequest, rec.Code)
 			require.Zero(t, farms.gotUser, "service must not be called")
 		})
 	}
 
 	t.Run("401 without user", func(t *testing.T) {
-		rec := do(newRouter(&fakeFarms{}, &fakeWater{}, false), http.MethodPost, "/onboarding", `{}`)
+		rec := do(newRouter(&fakeFarms{}, &fakeWater{}, false), http.MethodPost, "/me/onboarding", `{}`)
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 }
@@ -154,7 +154,7 @@ func TestErrorMapping(t *testing.T) {
 	})
 
 	t.Run("no water analysis yet is 404", func(t *testing.T) {
-		rec := do(newRouter(&fakeFarms{}, &fakeWater{}, true), http.MethodGet, "/farms/1/water", "")
+		rec := do(newRouter(&fakeFarms{}, &fakeWater{}, true), http.MethodGet, "/farms/1/water-analyses/active", "")
 		require.Equal(t, http.StatusNotFound, rec.Code)
 	})
 
@@ -170,11 +170,11 @@ func TestCreatePlotAndRecordWater(t *testing.T) {
 	require.Equal(t, http.StatusCreated, rec.Code)
 
 	water := &fakeWater{}
-	rec = do(newRouter(&fakeFarms{}, water, true), http.MethodPost, "/farms/1/water", `{"source":"canal","estimate":true}`)
+	rec = do(newRouter(&fakeFarms{}, water, true), http.MethodPost, "/farms/1/water-analyses", `{"source":"canal","estimate":true}`)
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	require.Equal(t, domain.WaterCanal, water.got.Source)
 	require.True(t, water.got.Estimate)
 
-	rec = do(newRouter(&fakeFarms{}, water, true), http.MethodPost, "/farms/1/water", `{"source":"sea"}`)
+	rec = do(newRouter(&fakeFarms{}, water, true), http.MethodPost, "/farms/1/water-analyses", `{"source":"sea"}`)
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 }

@@ -66,7 +66,8 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(m.deps.Auth)
 
-		r.Post("/onboarding", m.handler.Onboard)
+		// Birinchi sozlash — foydalanuvchining o'zi uchun bir martalik amal.
+		r.Post("/me/onboarding", m.handler.Onboard)
 
 		r.Get("/farms", m.handler.ListFarms)
 		r.Post("/farms", m.handler.CreateFarm)
@@ -79,20 +80,21 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 			r.Get("/plots", m.handler.ListPlots)
 			r.Post("/plots", m.handler.CreatePlot)
 			r.Patch("/plots/{plotID}", m.handler.UpdatePlot)
-			r.Delete("/plots/{plotID}", m.handler.ArchivePlot)
+			// O'chirmaydi, arxivlaydi — shuning uchun DELETE emas, aniq amal.
+			r.Post("/plots/{plotID}/archive", m.handler.ArchivePlot)
 
-			r.Get("/water", m.handler.ActiveWater)
-			r.Get("/water/history", m.handler.WaterHistory)
-			r.Post("/water", m.handler.RecordWater)
+			r.Get("/water-analyses", m.handler.WaterHistory)
+			r.Get("/water-analyses/active", m.handler.ActiveWater)
+			r.Post("/water-analyses", m.handler.RecordWater)
 
 			// Xo'jalik sozlamalari: agronom standartining ustidan yoziladi.
 			// PUT — to'liq almashtirish, DELETE — standartga qaytarish.
-			r.Get("/fertilizers", m.settings.ListFertilizers)
-			r.Put("/fertilizers/{code}", m.settings.PutFertilizer)
-			r.Delete("/fertilizers/{code}", m.settings.ResetFertilizer)
-			r.Get("/parameters", m.settings.ListParameters)
-			r.Put("/parameters/{key}", m.settings.PutParameter)
-			r.Delete("/parameters/{key}", m.settings.ResetParameter)
+			r.Get("/settings/fertilizers", m.settings.ListFertilizers)
+			r.Put("/settings/fertilizers/{code}", m.settings.PutFertilizer)
+			r.Delete("/settings/fertilizers/{code}", m.settings.ResetFertilizer)
+			r.Get("/settings/calc-parameters", m.settings.ListParameters)
+			r.Put("/settings/calc-parameters/{key}", m.settings.PutParameter)
+			r.Delete("/settings/calc-parameters/{key}", m.settings.ResetParameter)
 		})
 	})
 }

@@ -61,15 +61,15 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(m.deps.Auth)
 		r.Get("/catalog/fertilizers", m.handler.ListFertilizers)
-		r.Get("/catalog/water-defaults", m.handler.ListWaterDefaults)
-		r.Get("/catalog/parameters", m.handler.ListParameters)
+		r.Get("/catalog/water-sources", m.handler.ListWaterDefaults)
+		r.Get("/catalog/calc-parameters", m.handler.ListParameters)
 	})
 
 	r.Route("/admin/catalog", func(r chi.Router) {
 		r.Use(m.deps.Auth)
 		r.Use(m.deps.RequireAgronomist)
 		r.Patch("/fertilizers/{code}", m.handler.UpdateFertilizer)
-		r.Put("/water-defaults/{source}", m.handler.PutWaterDefault)
-		r.Patch("/parameters/{key}", m.handler.UpdateParameter)
+		r.Put("/water-sources/{source}", m.handler.PutWaterDefault)
+		r.Patch("/calc-parameters/{key}", m.handler.UpdateParameter)
 	})
 }

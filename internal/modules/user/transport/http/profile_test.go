@@ -97,7 +97,7 @@ func TestProfileHandler_Me(t *testing.T) {
 		NewProfileHandler(svc).Me(rec, req)
 
 		require.Equal(t, http.StatusNotFound, rec.Code)
-		require.Equal(t, "user not found", decodeError(t, rec))
+		require.Equal(t, "user.not_found", decodeError(t, rec))
 	})
 
 	t.Run("json field names match the api contract", func(t *testing.T) {
@@ -213,7 +213,7 @@ func TestProfileHandler_UpdateMe(t *testing.T) {
 		NewProfileHandler(svc).UpdateMe(rec, patchMe(t, `{"full_name":`))
 
 		require.Equal(t, http.StatusBadRequest, rec.Code)
-		require.Equal(t, "invalid json body", decodeError(t, rec))
+		require.Equal(t, "common.invalid_json", decodeError(t, rec))
 		require.Empty(t, svc.updateCalls)
 	})
 
@@ -235,7 +235,7 @@ func TestProfileHandler_UpdateMe(t *testing.T) {
 		NewProfileHandler(svc).UpdateMe(rec, patchMe(t, `{"region_id":999999}`))
 
 		require.Equal(t, http.StatusBadRequest, rec.Code)
-		require.Equal(t, "invalid region or district", decodeError(t, rec))
+		require.Equal(t, "user.location_invalid", decodeError(t, rec))
 	})
 
 	t.Run("does not leak internal errors", func(t *testing.T) {
@@ -245,6 +245,6 @@ func TestProfileHandler_UpdateMe(t *testing.T) {
 		NewProfileHandler(svc).UpdateMe(rec, patchMe(t, `{"full_name":"X"}`))
 
 		require.Equal(t, http.StatusInternalServerError, rec.Code)
-		require.Equal(t, "internal server error", decodeError(t, rec))
+		require.Equal(t, "common.internal_error", decodeError(t, rec))
 	})
 }

@@ -83,7 +83,7 @@ func TestLimiter_Middleware(t *testing.T) {
 		require.Equal(t, http.StatusTooManyRequests, rec.Code)
 		require.Equal(t, 2, next.calls, "the handler must not run")
 		require.Equal(t, "60", rec.Header().Get("Retry-After"))
-		require.Contains(t, rec.Body.String(), "too many requests")
+		require.Contains(t, rec.Body.String(), `"error":"common.too_many_requests"`)
 	})
 
 	t.Run("counts each ip separately", func(t *testing.T) {

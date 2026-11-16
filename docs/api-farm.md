@@ -13,7 +13,7 @@ Begona xo'jalik yoki issiqxona so'ralganda **404** qaytadi (403 emas).
 
 ## Birinchi sozlash
 
-`POST /onboarding`
+`POST /me/onboarding`
 
 ```json
 { "region_id": 3, "district_id": 41, "water_source": "well", "system_type": "substrate" }
@@ -57,15 +57,15 @@ Javob — `FarmOverview`:
 | GET | `/farms/{farmID}/plots?archived=true` | `{ "plots": [Plot] }`, arxivdagilar faqat `archived=true` bilan |
 | POST | `/farms/{farmID}/plots` | `{ "name": "1-issiqxona", "area_m2": 120, "default_volume_l": 200 }` → 201 |
 | PATCH | `/farms/{farmID}/plots/{plotID}` | `name`, `area_m2`, `default_volume_l`, `is_archived` |
-| DELETE | `/farms/{farmID}/plots/{plotID}` | 204, o'chirmaydi — **arxivlaydi** (jurnal yozuvlari saqlanadi) |
+| POST | `/farms/{farmID}/plots/{plotID}/archive` | 204, o'chirmaydi — **arxivlaydi** (jurnal yozuvlari saqlanadi) |
 
 ## Suv tahlili
 
 | Metod | Yo'l | Izoh |
 |---|---|---|
-| GET | `/farms/{farmID}/water` | faol tahlil; yo'q bo'lsa 404 |
-| GET | `/farms/{farmID}/water/history?limit=20` | `{ "analyses": [...] }`, yangisi birinchi, max 100 |
-| POST | `/farms/{farmID}/water` | yangi tahlil faol bo'ladi, eskisi tarixda qoladi → 201 |
+| GET | `/farms/{farmID}/water-analyses/active` | faol tahlil; yo'q bo'lsa 404 |
+| GET | `/farms/{farmID}/water-analyses?limit=20` | `{ "analyses": [...] }`, yangisi birinchi, max 100 |
+| POST | `/farms/{farmID}/water-analyses` | yangi tahlil faol bo'ladi, eskisi tarixda qoladi → 201 |
 
 POST tanasi:
 
@@ -82,8 +82,8 @@ Birliklar: `ec` — mS/sm, ionlar — mg/L, `hco3_mmol` — mmol/L.
 
 ## Xo'jalik sozlamalari
 
-`GET/PUT/DELETE /farms/{farmID}/fertilizers/{code}` va
-`GET/PUT/DELETE /farms/{farmID}/parameters/{key}` — agronom standarti ustidan
+`GET/PUT/DELETE /farms/{farmID}/settings/fertilizers/{code}` va
+`GET/PUT/DELETE /farms/{farmID}/settings/calc-parameters/{key}` — agronom standarti ustidan
 dehqon kiritadigan qiymatlar. Batafsil: `docs/calc-parameters.md`.
 
 "Bilmayman" (`estimate: true`) uchun suv tarkibi `water_source_defaults`

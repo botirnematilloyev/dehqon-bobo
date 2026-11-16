@@ -21,26 +21,26 @@ func TestStatusFromError(t *testing.T) {
 		wantStatus int
 		wantMsg    string
 	}{
-		{"invalid otp", domain.ErrInvalidOTP, http.StatusBadRequest, "invalid or expired otp code"},
-		{"expired otp", domain.ErrOTPExpired, http.StatusBadRequest, "invalid or expired otp code"},
-		{"too many requests", domain.ErrTooManyRequests, http.StatusTooManyRequests, "too many requests"},
-		{"unsupported provider", domain.ErrUnsupportedProvider, http.StatusBadRequest, "unsupported provider"},
-		{"session revoked", domain.ErrSessionRevoked, http.StatusUnauthorized, "session is no longer valid"},
-		{"session expired", domain.ErrSessionExpired, http.StatusUnauthorized, "session is no longer valid"},
-		{"session not found", domain.ErrSessionNotFound, http.StatusUnauthorized, "session is no longer valid"},
-		{"unknown error", errors.New("boom"), http.StatusInternalServerError, "internal server error"},
-		{"identifier taken", domain.ErrIdentifierTaken, http.StatusConflict, "account already exists"},
-		{"username taken", domain.ErrUsernameTaken, http.StatusConflict, "username is already taken"},
-		{"username reserved", domain.ErrUsernameReserved, http.StatusConflict, "this username is reserved"},
+		{"invalid otp", domain.ErrInvalidOTP, http.StatusBadRequest, "auth.invalid_otp"},
+		{"expired otp", domain.ErrOTPExpired, http.StatusBadRequest, "auth.invalid_otp"},
+		{"common.too_many_requests", domain.ErrTooManyRequests, http.StatusTooManyRequests, "common.too_many_requests"},
+		{"auth.unsupported_provider", domain.ErrUnsupportedProvider, http.StatusBadRequest, "auth.unsupported_provider"},
+		{"session revoked", domain.ErrSessionRevoked, http.StatusUnauthorized, "auth.session_invalid"},
+		{"session expired", domain.ErrSessionExpired, http.StatusUnauthorized, "auth.session_invalid"},
+		{"session not found", domain.ErrSessionNotFound, http.StatusUnauthorized, "auth.session_invalid"},
+		{"unknown error", errors.New("boom"), http.StatusInternalServerError, "common.internal_error"},
+		{"identifier taken", domain.ErrIdentifierTaken, http.StatusConflict, "auth.account_exists"},
+		{"username taken", domain.ErrUsernameTaken, http.StatusConflict, "user.username_taken"},
+		{"username reserved", domain.ErrUsernameReserved, http.StatusConflict, "user.username_reserved"},
 		{"invalid username", domain.ErrInvalidUsername, http.StatusBadRequest,
-			"username must be 3-32 characters: lowercase letters, digits, - and _"},
+			"user.username_invalid"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			status, msg := statusFromError(tc.err)
 			require.Equal(t, tc.wantStatus, status)
-			require.Equal(t, tc.wantMsg, msg)
+			require.Equal(t, tc.wantMsg, string(msg))
 		})
 	}
 
@@ -49,7 +49,7 @@ func TestStatusFromError(t *testing.T) {
 
 		status, msg := statusFromError(wrapped)
 		require.Equal(t, http.StatusBadRequest, status)
-		require.Equal(t, "invalid or expired otp code", msg)
+		require.Equal(t, "auth.invalid_otp", string(msg))
 	})
 
 	t.Run("does not leak internal error details", func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestStatusFromError(t *testing.T) {
 
 		status, msg := statusFromError(secret)
 		require.Equal(t, http.StatusInternalServerError, status)
-		require.Equal(t, "internal server error", msg)
+		require.Equal(t, "common.internal_error", string(msg))
 		require.NotContains(t, msg, "users")
 	})
 }
@@ -89,13 +89,16 @@ func TestWriteJSON(t *testing.T) {
 func TestWriteError(t *testing.T) {
 	rec := httptest.NewRecorder()
 
-	writeError(rec, http.StatusUnauthorized, "invalid token")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Language", "ru")
+	writeError(rec, req, http.StatusUnauthorized, msgInvalidToken)
 
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
 
 	var body ErrorResponse
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-	require.Equal(t, "invalid token", body.Error)
+	require.Equal(t, "auth.invalid_token", body.Error, "stable code")
+	require.Equal(t, "Срок входа истёк. Войдите снова", body.Message, "message in the request language")
 }
 
 func TestToAuthResponse(t *testing.T) {

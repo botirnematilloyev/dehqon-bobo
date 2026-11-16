@@ -4,6 +4,7 @@ import (
 	"context"
 	"dehqon-bobo/internal/modules/user/domain"
 	"dehqon-bobo/internal/modules/user/service"
+	"dehqon-bobo/internal/platform/i18n"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -26,7 +27,7 @@ func NewProfileHandler(profiles ProfileService) *ProfileHandler {
 func (h *ProfileHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := UserIDFromContext(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "user not found")
+		writeError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 
@@ -36,7 +37,7 @@ func (h *ProfileHandler) Me(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("get profile failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -46,18 +47,18 @@ func (h *ProfileHandler) Me(w http.ResponseWriter, r *http.Request) {
 func (h *ProfileHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := UserIDFromContext(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "user not found")
+		writeError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 
 	var req UpdateProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		writeError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, validationKey(err))
 		return
 	}
 
@@ -82,7 +83,7 @@ func (h *ProfileHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("update profile failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 

@@ -56,9 +56,9 @@ func TestRegisterRoutes_Protection(t *testing.T) {
 		{"patch me", http.MethodPatch, "/api/v1/me", true},
 		{"regions", http.MethodGet, "/api/v1/regions", false},
 		{"districts", http.MethodGet, "/api/v1/districts", false},
-		{"sessions", http.MethodGet, "/api/v1/sessions", true},
-		{"revoke session", http.MethodDelete, "/api/v1/sessions/1", true},
-		{"logout all", http.MethodPost, "/api/v1/logout-all", true},
+		{"sessions", http.MethodGet, "/api/v1/me/sessions", true},
+		{"revoke session", http.MethodDelete, "/api/v1/me/sessions/1", true},
+		{"logout all", http.MethodPost, "/api/v1/auth/logout-all", true},
 		{"admin users", http.MethodGet, "/api/v1/admin/users", true},
 		{"admin user", http.MethodGet, "/api/v1/admin/users/1", true},
 	}

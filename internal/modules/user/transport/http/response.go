@@ -3,6 +3,7 @@ package http
 import (
 	"dehqon-bobo/internal/modules/user/domain"
 	"dehqon-bobo/internal/modules/user/service"
+	"dehqon-bobo/internal/platform/i18n"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -21,58 +22,54 @@ type UserResponse struct {
 	FullName *string `json:"full_name"`
 }
 
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
+// ErrorResponse — barcha xato javoblari: {"error": kod, "message": matn}.
+type ErrorResponse = i18n.ErrorBody
 
-func statusFromError(err error) (int, string) {
+// statusFromError — domain xatosi → HTTP status va xabar kaliti.
+func statusFromError(err error) (int, i18n.Key) {
 	switch {
 	case errors.Is(err, domain.ErrInvalidOTP), errors.Is(err, domain.ErrOTPExpired):
-		return http.StatusBadRequest, "invalid or expired otp code"
+		return http.StatusBadRequest, msgInvalidOTP
 
 	case errors.Is(err, domain.ErrTooManyRequests):
-		return http.StatusTooManyRequests, "too many requests"
+		return http.StatusTooManyRequests, i18n.ErrTooManyRequests
 
 	case errors.Is(err, domain.ErrUnsupportedProvider):
-		return http.StatusBadRequest, "unsupported provider"
+		return http.StatusBadRequest, msgUnsupportedProvider
 
 	case errors.Is(err, domain.ErrLoginCodeInvalid):
-		return http.StatusBadRequest, "invalid or expired login code"
+		return http.StatusBadRequest, msgInvalidLoginCode
 
 	case errors.Is(err, domain.ErrSessionRevoked),
 		errors.Is(err, domain.ErrSessionExpired),
 		errors.Is(err, domain.ErrSessionNotFound),
 		errors.Is(err, domain.ErrRefreshTokenReused):
-		return http.StatusUnauthorized, "session is no longer valid"
+		return http.StatusUnauthorized, msgSessionInvalid
 
 	case errors.Is(err, domain.ErrIdentifierTaken):
-		return http.StatusConflict, "account already exists"
+		return http.StatusConflict, msgAccountExists
 
-	// `ErrUsernameTaken` ilgari yuqoridagi shox bilan birga edi va
-	// "account already exists" xabarini berardi. Ro'yxatdan o'tishda
-	// bu to'g'ri, lekin nomni O'ZGARTIRISHDA yolg'on: akkaunt allaqachon
-	// bor va gap faqat band handle'da.
+	// Nomni O'ZGARTIRISHDA "akkaunt bor" emas, aynan "nom band".
 	case errors.Is(err, domain.ErrUsernameTaken):
-		return http.StatusConflict, "username is already taken"
+		return http.StatusConflict, msgUsernameTaken
 
 	case errors.Is(err, domain.ErrInvalidUsername):
-		return http.StatusBadRequest,
-			"username must be 3-32 characters: lowercase letters, digits, - and _"
+		return http.StatusBadRequest, msgUsernameInvalid
 
 	case errors.Is(err, domain.ErrUsernameReserved):
-		return http.StatusConflict, "this username is reserved"
+		return http.StatusConflict, msgUsernameReserved
 
 	case errors.Is(err, domain.ErrInvalidLocale):
-		return http.StatusBadRequest, "invalid locale"
+		return http.StatusBadRequest, msgLocaleInvalid
 
 	case errors.Is(err, domain.ErrInvalidLocation):
-		return http.StatusBadRequest, "invalid region or district"
+		return http.StatusBadRequest, msgLocationInvalid
 
 	case errors.Is(err, domain.ErrUserNotFound):
-		return http.StatusNotFound, "user not found"
+		return http.StatusNotFound, msgUserNotFound
 
 	default:
-		return http.StatusInternalServerError, "internal server error"
+		return http.StatusInternalServerError, i18n.ErrInternal
 	}
 }
 
@@ -84,8 +81,8 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	}
 }
 
-func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, ErrorResponse{Error: message})
+func writeError(w http.ResponseWriter, r *http.Request, status int, key i18n.Key) {
+	i18n.WriteError(w, r, status, key)
 }
 
 func toAuthResponse(res *service.AuthResult) AuthResponse {

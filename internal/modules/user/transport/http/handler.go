@@ -4,6 +4,7 @@ import (
 	"context"
 	"dehqon-bobo/internal/modules/user/domain"
 	"dehqon-bobo/internal/modules/user/service"
+	"dehqon-bobo/internal/platform/i18n"
 	"encoding/json"
 	"log/slog"
 	"net"
@@ -38,18 +39,18 @@ func NewHandler(authService AuthService) *Handler {
 func (h *Handler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 	var req RequestOTPRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		writeError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, validationKey(err))
 		return
 	}
 
 	provider, err := parseProvider(req.Provider)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "unsupported provider")
+		writeError(w, r, http.StatusBadRequest, msgUnsupportedProvider)
 		return
 	}
 
@@ -58,7 +59,7 @@ func (h *Handler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("request otp failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -68,18 +69,18 @@ func (h *Handler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 	var req VerifyOTPRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		writeError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, validationKey(err))
 		return
 	}
 
 	provider, err := parseProvider(req.Provider)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "unsupported provider")
+		writeError(w, r, http.StatusBadRequest, msgUnsupportedProvider)
 		return
 	}
 
@@ -105,7 +106,7 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("verify otp failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -115,12 +116,12 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		writeError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, validationKey(err))
 		return
 	}
 
@@ -130,7 +131,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("refresh token failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -140,7 +141,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	sessionID, ok := SessionIDFromContext(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "session not found")
+		writeError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 
@@ -149,7 +150,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("logout failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -159,12 +160,12 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) VerifyTelegramLogin(w http.ResponseWriter, r *http.Request) {
 	var req TelegramVerifyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		writeError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, validationKey(err))
 		return
 	}
 
@@ -188,7 +189,7 @@ func (h *Handler) VerifyTelegramLogin(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("verify telegram login failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -198,7 +199,7 @@ func (h *Handler) VerifyTelegramLogin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Sessions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := UserIDFromContext(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "user not found")
+		writeError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 	currentID, _ := SessionIDFromContext(r.Context())
@@ -209,7 +210,7 @@ func (h *Handler) Sessions(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("list sessions failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -224,13 +225,13 @@ func (h *Handler) Sessions(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	userID, ok := UserIDFromContext(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "user not found")
+		writeError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 
 	sessionID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil || sessionID <= 0 {
-		writeError(w, http.StatusBadRequest, "session id must be a positive integer")
+		writeError(w, r, http.StatusBadRequest, i18n.ErrInvalidID)
 		return
 	}
 
@@ -239,7 +240,7 @@ func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("revoke session failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
@@ -249,7 +250,7 @@ func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 	userID, ok := UserIDFromContext(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "user not found")
+		writeError(w, r, http.StatusUnauthorized, i18n.ErrUnauthorized)
 		return
 	}
 
@@ -258,7 +259,7 @@ func (h *Handler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 		if status == http.StatusInternalServerError {
 			slog.Error("logout all failed", "error", err)
 		}
-		writeError(w, status, msg)
+		writeError(w, r, status, msg)
 		return
 	}
 
