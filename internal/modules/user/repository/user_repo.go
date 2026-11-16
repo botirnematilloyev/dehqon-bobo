@@ -120,3 +120,28 @@ func (r *UserRepository) Update(ctx context.Context, u *domain.User) error {
 	}
 	return nil
 }
+
+// MarkOnboarded — birinchi sozlash tugadi: viloyat/tuman va vaqt.
+//
+// onboarded_at faqat BIRINCHI marta yoziladi (COALESCE): sozlash qayta
+// o'tilsa ham "qachon qo'shilgan" statistikasi buzilmaydi.
+func (r *UserRepository) MarkOnboarded(ctx context.Context, id int64, regionID, districtID *int32, at int64) error {
+	const query = `
+		UPDATE users
+		SET region_id = $2, district_id = $3,
+		    onboarded_at = COALESCE(onboarded_at, $4), updated_at = $4
+		WHERE id = $1
+	`
+	q := db.FromContext(ctx, r.q)
+	tag, err := q.Exec(ctx, query, id, regionID, districtID, at)
+	if err != nil {
+		if db.IsForeignKeyViolation(err) {
+			return domain.ErrInvalidLocation
+		}
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrUserNotFound
+	}
+	return nil
+}

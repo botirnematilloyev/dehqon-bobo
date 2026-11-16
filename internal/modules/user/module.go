@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"dehqon-bobo/internal/modules/user/domain"
 	"dehqon-bobo/internal/modules/user/notifier"
 	"dehqon-bobo/internal/modules/user/repository"
@@ -32,6 +33,8 @@ type Module struct {
 	authz           *service.AuthzService
 	locationHandler *userhttp.LocationHandler
 	adminHandler    *userhttp.AdminUserHandler
+
+	users *repository.UserRepository
 }
 
 func New(
@@ -110,6 +113,7 @@ func New(
 		authz:           authzService,
 		locationHandler: locationHandler,
 		adminHandler:    adminHandler,
+		users:           userRepo,
 	}
 }
 
@@ -203,4 +207,10 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 		r.Get("/admin/users", m.adminHandler.List)
 		r.Get("/admin/users/{id}", m.adminHandler.Get)
 	})
+}
+
+// MarkOnboarded — `farm` moduli uchun ochilgan seam (birinchi sozlash).
+// ctx da tranzaksiya bo'lsa, yozuv o'sha tranzaksiyaga qo'shiladi.
+func (m *Module) MarkOnboarded(ctx context.Context, userID int64, regionID, districtID *int32, at int64) error {
+	return m.users.MarkOnboarded(ctx, userID, regionID, districtID, at)
 }

@@ -384,3 +384,29 @@ func TestUserRepository_UpdateUsername(t *testing.T) {
 		require.NoError(t, repo.Update(ctx, u))
 	})
 }
+
+func TestUserRepository_MarkOnboarded(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTx(t)
+	repo := repository.NewUserRepository(tx)
+
+	regionID := insertRegion(t, tx)
+	districtID := insertDistrict(t, tx, regionID)
+	u := createUser(t, tx)
+
+	require.NoError(t, repo.MarkOnboarded(ctx, u.ID, &regionID, &districtID, 1700000500))
+	got, err := repo.FindByID(ctx, u.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(1700000500), *got.OnboardedAt)
+	require.Equal(t, regionID, *got.RegionID)
+	require.Equal(t, districtID, *got.DistrictID)
+
+	// Qayta sozlash viloyatni yangilaydi, lekin birinchi sana saqlanadi.
+	require.NoError(t, repo.MarkOnboarded(ctx, u.ID, &regionID, nil, 1700000900))
+	got, err = repo.FindByID(ctx, u.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(1700000500), *got.OnboardedAt)
+	require.Nil(t, got.DistrictID)
+
+	require.ErrorIs(t, repo.MarkOnboarded(ctx, 999999999, nil, nil, 1), domain.ErrUserNotFound)
+}

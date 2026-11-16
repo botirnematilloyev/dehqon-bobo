@@ -11,8 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"dehqon-bobo/internal/modules/farm"
 	"dehqon-bobo/internal/modules/user"
 	"dehqon-bobo/internal/modules/user/service"
+	userhttp "dehqon-bobo/internal/modules/user/transport/http"
 	"dehqon-bobo/internal/platform/cache"
 	"dehqon-bobo/internal/platform/config"
 	"dehqon-bobo/internal/platform/db"
@@ -50,9 +52,16 @@ func main() {
 	defer redisClient.Close()
 	slog.Info("connected to redis")
 
-	// Modullar. Keyingilari (farm, catalog, journal, community) shu yerga
-	// qo'shiladi va userModule.Authenticated() orqali himoyalanadi.
+	// Modullar. Keyingilari (catalog, journal, community) ham shu tartibda:
+	// userModule.Authenticated() bilan himoyalanadi va boshqa modulga
+	// faqat adapter (adapters.go) orqali murojaat qiladi.
 	userModule := user.New(pool, redisClient, cfg.JWT, cfg.Notifier, cfg.Telegram)
+
+	farmModule := farm.New(pool, farm.Deps{
+		Auth:       userModule.Authenticated(),
+		UserIDFrom: userhttp.UserIDFromContext,
+		Onboarder:  onboarderFunc(userModule.MarkOnboarded),
+	})
 
 	botDone := make(chan struct{})
 	if userModule.Bot != nil {
@@ -113,6 +122,7 @@ func main() {
 
 	router.Route("/api/v1", func(r chi.Router) {
 		userModule.RegisterRoutes(r)
+		farmModule.RegisterRoutes(r)
 	})
 
 	root := chi.NewMux()
