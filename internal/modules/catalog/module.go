@@ -63,6 +63,8 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 		r.Get("/catalog/fertilizers", m.handler.ListFertilizers)
 		r.Get("/catalog/water-sources", m.handler.ListWaterDefaults)
 		r.Get("/catalog/calc-parameters", m.handler.ListParameters)
+		r.Get("/catalog/crops", m.handler.ListCrops)
+		r.Get("/catalog/crops/{code}/profiles", m.handler.ListCropProfiles)
 	})
 
 	r.Route("/admin/catalog", func(r chi.Router) {
@@ -71,5 +73,8 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 		r.Patch("/fertilizers/{code}", m.handler.UpdateFertilizer)
 		r.Put("/water-sources/{source}", m.handler.PutWaterDefault)
 		r.Patch("/calc-parameters/{key}", m.handler.UpdateParameter)
+		r.Post("/crops/{code}/profiles", m.handler.CreateCropProfile)
+		r.Put("/crop-profiles/{id}", m.handler.UpdateCropProfile)
+		r.Post("/crop-profiles/{id}/approve", m.handler.ApproveCropProfile)
 	})
 }

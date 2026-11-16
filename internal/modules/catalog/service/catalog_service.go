@@ -19,6 +19,15 @@ type Repository interface {
 	ListParameters(ctx context.Context) ([]domain.Parameter, error)
 	FindParameter(ctx context.Context, key string) (*domain.Parameter, error)
 	UpdateParameter(ctx context.Context, p *domain.Parameter) error
+
+	ListCrops(ctx context.Context) ([]domain.Crop, error)
+	FindCrop(ctx context.Context, code string) (*domain.Crop, error)
+	ListCropProfiles(ctx context.Context, cropID int32) ([]domain.CropProfile, error)
+	FindCropProfile(ctx context.Context, id int64) (*domain.CropProfile, error)
+	CreateCropProfile(ctx context.Context, p *domain.CropProfile) error
+	UpdateCropProfile(ctx context.Context, p *domain.CropProfile) error
+	ArchiveApproved(ctx context.Context, cropID int32, stage domain.Stage, now int64) error
+	MarkApproved(ctx context.Context, id, reviewerID, now int64) error
 }
 
 type TxManager interface {

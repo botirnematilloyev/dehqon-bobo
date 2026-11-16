@@ -73,6 +73,28 @@ Kodlar `<modul>.<sabab>` ko'rinishida: `common.*`, `auth.*`, `user.*`, `location
 | PATCH | `/admin/catalog/fertilizers/{code}` | agronom, admin |
 | PUT | `/admin/catalog/water-sources/{source}?region_id=` | agronom, admin |
 | PATCH | `/admin/catalog/calc-parameters/{key}` | agronom, admin |
+| GET | `/catalog/crops` | hamma |
+| GET | `/catalog/crops/{code}/profiles` | hamma |
+| POST | `/admin/catalog/crops/{code}/profiles` | agronom, admin — yangi profil, doim `draft` |
+| PUT | `/admin/catalog/crop-profiles/{id}` | agronom, admin — faqat `draft` |
+| POST | `/admin/catalog/crop-profiles/{id}/approve` | agronom, admin |
+
+#### Ekin profillari
+
+Profil — ekin + bosqich (`seedling` ko'chat, `vegetative` o'sish, `fruiting` hosil) uchun
+maqsad eritma, **mg/L** (`targets_mg_l`), `ec_target`, `ph_min`/`ph_max`.
+
+- **S kiritilmaydi** — kation/anion ekvivalentligidan (HPG balansi, P = H2PO4⁻) hisoblanadi.
+  Anionlar kationlardan ko'p bo'lsa → `422 catalog.ion_imbalance`.
+- **Hayot sikli:** `draft` → `approve` → `approved`. Shu ekin+bosqichning avvalgi
+  tasdiqlangani `archived` bo'ladi (jurnal yozuvlari unga bog'liq qoladi, ro'yxatda chiqmaydi).
+  Tasdiqlangan profil o'zgartirilmaydi (`409 catalog.crop_profile_locked`) — yangi draft yaratiladi.
+- `is_reviewed: true` = agronom tasdiqlagan ("Agronom ko'rdi ✓").
+
+**Seed (000012):** 5 ekin — FAO-29 suv sho'rlik chegarasi bilan. Pomidor va bodring
+uchun Sonneveld & Voogt (2009) mineral vata standart eritmasi `vegetative` va `fruiting`
+bosqichlarida, `draft` holatda — agronom tasdiqlashi kerak. Qalampir, qulupnay, salat
+profillari va `seedling` bosqichi agronom tomonidan kiritiladi.
 
 ### Admin 🔒
 `GET /admin/users`, `GET /admin/users/{id}` — faqat admin.

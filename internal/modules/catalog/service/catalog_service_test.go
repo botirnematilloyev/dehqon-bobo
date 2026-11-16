@@ -15,6 +15,10 @@ type fakeRepo struct {
 	fert   map[string]domain.Fertilizer
 	params map[string]domain.Parameter
 	water  []domain.WaterDefault
+
+	crops    map[string]domain.Crop
+	profiles map[int64]domain.CropProfile
+	nextID   int64
 }
 
 func newFakeRepo() *fakeRepo {
@@ -23,6 +27,8 @@ func newFakeRepo() *fakeRepo {
 			"KNO3":    {ID: 1, Code: "KNO3", Kind: domain.KindMacro, Elements: map[string]float64{"K": 38.672, "N_NO3": 13.854}, StockGL: f64(250)},
 			"HNO3_38": {ID: 2, Code: "HNO3_38", Kind: domain.KindAcid, ConcentrationPct: f64(38), DensityGML: f64(1.23), Elements: map[string]float64{}},
 		},
+		crops:    map[string]domain.Crop{"tomato": {ID: 1, Code: "tomato", IsActive: true}},
+		profiles: map[int64]domain.CropProfile{},
 		params: map[string]domain.Parameter{
 			"residual_hco3_mmol": {Key: "residual_hco3_mmol", Value: 0.5, Min: 0, Max: 3},
 		},

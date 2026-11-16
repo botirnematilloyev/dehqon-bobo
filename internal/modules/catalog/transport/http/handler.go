@@ -22,6 +22,12 @@ type Catalog interface {
 	UpdateFertilizer(ctx context.Context, agronomistID int64, code string, p service.FertilizerPatch) (*domain.Fertilizer, error)
 	UpsertWaterDefault(ctx context.Context, agronomistID int64, w domain.WaterDefault) (*domain.WaterDefault, error)
 	UpdateParameter(ctx context.Context, agronomistID int64, key string, value float64, reviewed *bool) (*domain.Parameter, error)
+
+	Crops(ctx context.Context) ([]domain.Crop, error)
+	CropProfiles(ctx context.Context, cropCode string) (*domain.Crop, []domain.CropProfile, error)
+	CreateCropProfile(ctx context.Context, cropCode string, in service.ProfileInput) (*domain.CropProfile, error)
+	UpdateCropProfile(ctx context.Context, id int64, in service.ProfileInput) (*domain.CropProfile, error)
+	ApproveCropProfile(ctx context.Context, agronomistID, id int64) (*domain.CropProfile, error)
 }
 
 type Handler struct {
@@ -138,6 +144,16 @@ func statusFromError(err error) (int, i18n.Key) {
 		return http.StatusNotFound, msgParameterNotFound
 	case errors.Is(err, domain.ErrWaterDefaultNotFound):
 		return http.StatusNotFound, msgWaterDefaultNotFound
+	case errors.Is(err, domain.ErrCropNotFound):
+		return http.StatusNotFound, msgCropNotFound
+	case errors.Is(err, domain.ErrCropProfileNotFound):
+		return http.StatusNotFound, msgCropProfileNotFound
+	case errors.Is(err, domain.ErrInvalidStage):
+		return http.StatusBadRequest, msgInvalidStage
+	case errors.Is(err, domain.ErrIonImbalance):
+		return http.StatusUnprocessableEntity, msgIonImbalance
+	case errors.Is(err, domain.ErrProfileLocked):
+		return http.StatusConflict, msgProfileLocked
 	case errors.Is(err, domain.ErrInvalidElements):
 		return http.StatusBadRequest, msgInvalidElements
 	case errors.Is(err, domain.ErrOutOfRange):

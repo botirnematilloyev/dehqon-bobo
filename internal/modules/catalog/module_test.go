@@ -26,8 +26,9 @@ func router(auth, agronomist Middleware) http.Handler {
 }
 
 var (
-	readRoutes  = [][2]string{{"GET", "/api/v1/catalog/fertilizers"}, {"GET", "/api/v1/catalog/water-sources"}, {"GET", "/api/v1/catalog/calc-parameters"}}
-	adminRoutes = [][2]string{{"PATCH", "/api/v1/admin/catalog/fertilizers/CaNO3"}, {"PUT", "/api/v1/admin/catalog/water-sources/well"}, {"PATCH", "/api/v1/admin/catalog/calc-parameters/residual_hco3_mmol"}}
+	readRoutes  = [][2]string{{"GET", "/api/v1/catalog/fertilizers"}, {"GET", "/api/v1/catalog/water-sources"}, {"GET", "/api/v1/catalog/calc-parameters"}, {"GET", "/api/v1/catalog/crops"}, {"GET", "/api/v1/catalog/crops/tomato/profiles"}}
+	adminRoutes = [][2]string{{"PATCH", "/api/v1/admin/catalog/fertilizers/CaNO3"}, {"PUT", "/api/v1/admin/catalog/water-sources/well"}, {"PATCH", "/api/v1/admin/catalog/calc-parameters/residual_hco3_mmol"},
+		{"POST", "/api/v1/admin/catalog/crops/tomato/profiles"}, {"PUT", "/api/v1/admin/catalog/crop-profiles/1"}, {"POST", "/api/v1/admin/catalog/crop-profiles/1/approve"}}
 )
 
 func TestRoutes_RequireLogin(t *testing.T) {
