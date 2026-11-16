@@ -1,0 +1,25 @@
+# env
+.env
+.env.*
+!.env.example
+
+# binaries
+/bin/
+*.exe
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Backup arxivlari — hech qachon repoga tushmasin
+backups/
+*.dump
+*.dump.age
+web/www/*
+web/admin/*
+web/assets/*
+!web/*/index.html
+!web/*/.gitkeep

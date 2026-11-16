@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS farm_fertilizers;
+DROP TABLE IF EXISTS water_analyses;
+DROP TABLE IF EXISTS plots;
+DROP TABLE IF EXISTS farms;
