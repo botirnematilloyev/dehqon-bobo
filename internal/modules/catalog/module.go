@@ -57,6 +57,12 @@ func (m *Module) WaterDefault(ctx context.Context, source int16, regionID *int32
 	return m.svc.WaterDefault(ctx, source, regionID)
 }
 
+// CropProfile — `recipe` moduli uchun: ekin + bosqichning rasmiy profili.
+// Tasdiqlangani bo'lsa o'sha, bo'lmasa eng yangi draft.
+func (m *Module) CropProfile(ctx context.Context, cropCode string, stage domain.Stage) (*domain.Crop, *domain.CropProfile, error) {
+	return m.svc.CropProfile(ctx, cropCode, stage)
+}
+
 func (m *Module) RegisterRoutes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(m.deps.Auth)

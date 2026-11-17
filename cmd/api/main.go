@@ -13,6 +13,7 @@ import (
 
 	"dehqon-bobo/internal/modules/catalog"
 	"dehqon-bobo/internal/modules/farm"
+	"dehqon-bobo/internal/modules/recipe"
 	"dehqon-bobo/internal/modules/user"
 	"dehqon-bobo/internal/modules/user/service"
 	userhttp "dehqon-bobo/internal/modules/user/transport/http"
@@ -72,6 +73,13 @@ func main() {
 		Onboarder:     onboarderFunc(userModule.MarkOnboarded),
 		Catalog:       catalogPort,
 		WaterDefaults: catalogPort,
+	})
+
+	recipeModule := recipe.New(recipe.Deps{
+		Auth:       userModule.Authenticated(),
+		UserIDFrom: userhttp.UserIDFromContext,
+		Farms:      recipeFarms{m: farmModule},
+		Profiles:   recipeProfiles{m: catalogModule},
 	})
 
 	botDone := make(chan struct{})
@@ -139,6 +147,7 @@ func main() {
 		userModule.RegisterRoutes(r)
 		farmModule.RegisterRoutes(r)
 		catalogModule.RegisterRoutes(r)
+		recipeModule.RegisterRoutes(r)
 	})
 
 	root := chi.NewMux()

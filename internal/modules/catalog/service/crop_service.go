@@ -23,6 +23,21 @@ func (s *CatalogService) CropProfiles(ctx context.Context, cropCode string) (*do
 	return crop, list, nil
 }
 
+// CropProfile — ekin + bosqich uchun ishlatiladigan profil. Ro'yxat
+// bosqich ichida tasdiqlangani birinchi, keyin eng yangi draft tartibida.
+func (s *CatalogService) CropProfile(ctx context.Context, cropCode string, stage domain.Stage) (*domain.Crop, *domain.CropProfile, error) {
+	crop, list, err := s.CropProfiles(ctx, cropCode)
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := range list {
+		if list[i].Stage == stage {
+			return crop, &list[i], nil
+		}
+	}
+	return nil, nil, domain.ErrCropProfileNotFound
+}
+
 // ProfileInput — agronom kiritadigan maydonlar. S bu yerda yo'q: ion
 // balansidan hisoblanadi (domain.CropProfile.Normalize).
 type ProfileInput struct {

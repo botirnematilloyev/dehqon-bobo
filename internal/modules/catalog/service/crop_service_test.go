@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"math"
+	"sort"
 	"testing"
 
 	"dehqon-bobo/internal/modules/catalog/domain"
@@ -27,6 +28,17 @@ func (r *fakeRepo) ListCropProfiles(_ context.Context, cropID int32) ([]domain.C
 			out = append(out, p)
 		}
 	}
+	// Repo tartibi: bosqich, tasdiqlangani birinchi, yangisi birinchi.
+	sort.Slice(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		if a.Stage != b.Stage {
+			return a.Stage < b.Stage
+		}
+		if a.Status != b.Status {
+			return a.Status > b.Status
+		}
+		return a.ID > b.ID
+	})
 	return out, nil
 }
 func (r *fakeRepo) FindCropProfile(_ context.Context, id int64) (*domain.CropProfile, error) {
@@ -155,4 +167,30 @@ func TestUpdateCropProfile_Draft(t *testing.T) {
 
 	_, err = s.UpdateCropProfile(ctx, 999, in)
 	require.ErrorIs(t, err, domain.ErrCropProfileNotFound)
+}
+
+func TestCropProfile_PrefersApproved(t *testing.T) {
+	s, r := newSvc()
+	ctx := context.Background()
+
+	_, _, err := s.CropProfile(ctx, "tomato", domain.StageFruiting)
+	require.ErrorIs(t, err, domain.ErrCropProfileNotFound)
+
+	draft, err := s.CreateCropProfile(ctx, "tomato", tomatoInput())
+	require.NoError(t, err)
+	_, got, err := s.CropProfile(ctx, "tomato", domain.StageFruiting)
+	require.NoError(t, err)
+	require.Equal(t, draft.ID, got.ID, "faqat draft bo'lsa — draft")
+
+	_, err = s.ApproveCropProfile(ctx, agronomist, draft.ID)
+	require.NoError(t, err)
+	_, err = s.CreateCropProfile(ctx, "tomato", tomatoInput()) // yangi draft
+	require.Len(t, r.profiles, 2)
+	require.NoError(t, err)
+	_, got, err = s.CropProfile(ctx, "tomato", domain.StageFruiting)
+	require.NoError(t, err)
+	require.Equal(t, draft.ID, got.ID, "tasdiqlangani draftdan oldin")
+
+	_, _, err = s.CropProfile(ctx, "rice", domain.StageFruiting)
+	require.ErrorIs(t, err, domain.ErrCropNotFound)
 }

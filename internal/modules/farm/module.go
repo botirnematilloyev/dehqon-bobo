@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"dehqon-bobo/internal/modules/farm/domain"
 	"dehqon-bobo/internal/modules/farm/repository"
 	"dehqon-bobo/internal/modules/farm/service"
 	farmhttp "dehqon-bobo/internal/modules/farm/transport/http"
@@ -30,9 +31,11 @@ type Deps struct {
 }
 
 type Module struct {
-	handler  *farmhttp.Handler
-	settings *farmhttp.SettingsHandler
-	deps     Deps
+	handler     *farmhttp.Handler
+	settings    *farmhttp.SettingsHandler
+	farmSvc     *service.FarmService
+	settingsSvc *service.SettingsService
+	deps        Deps
 }
 
 func New(pool *pgxpool.Pool, deps Deps) *Module {
@@ -51,9 +54,11 @@ func New(pool *pgxpool.Pool, deps Deps) *Module {
 	settings := service.NewSettingsService(farms, repository.NewSettingsRepository(pool), deps.Catalog)
 
 	return &Module{
-		handler:  farmhttp.NewHandler(farms, plots, water, deps.UserIDFrom),
-		settings: farmhttp.NewSettingsHandler(settings, deps.UserIDFrom),
-		deps:     deps,
+		handler:     farmhttp.NewHandler(farms, plots, water, deps.UserIDFrom),
+		settings:    farmhttp.NewSettingsHandler(settings, deps.UserIDFrom),
+		farmSvc:     farms,
+		settingsSvc: settings,
+		deps:        deps,
 	}
 }
 
@@ -97,4 +102,30 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 			r.Delete("/settings/calc-parameters/{key}", m.settings.ResetParameter)
 		})
 	})
+}
+
+// RecipeInputs — `recipe` moduli uchun seam: xo'jalik, faol suv tahlili
+// (yo'q bo'lsa nil) va effective o'g'itlar/parametrlar (standart + xo'jalik
+// o'zgartirishi). Egasini tekshiradi: begona xo'jalik — ErrFarmNotFound.
+type RecipeInputs struct {
+	Farm        domain.Farm
+	Water       *domain.WaterAnalysis
+	Fertilizers []domain.EffectiveFertilizer
+	Params      []domain.EffectiveParam
+}
+
+func (m *Module) RecipeInputs(ctx context.Context, userID, farmID int64) (*RecipeInputs, error) {
+	overview, err := m.farmSvc.Get(ctx, userID, farmID)
+	if err != nil {
+		return nil, err
+	}
+	ferts, err := m.settingsSvc.Fertilizers(ctx, userID, farmID)
+	if err != nil {
+		return nil, err
+	}
+	params, err := m.settingsSvc.Parameters(ctx, userID, farmID)
+	if err != nil {
+		return nil, err
+	}
+	return &RecipeInputs{Farm: overview.Farm, Water: overview.Water, Fertilizers: ferts, Params: params}, nil
 }

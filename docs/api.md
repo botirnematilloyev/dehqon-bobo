@@ -66,6 +66,13 @@ Kodlar `<modul>.<sabab>` ko'rinishida: `common.*`, `auth.*`, `user.*`, `location
 | GET | `/farms/{farmID}/settings/calc-parameters` | hisob parametrlari |
 | PUT/DELETE | `/farms/{farmID}/settings/calc-parameters/{key}` | o'z qiymati / standartga qaytarish |
 
+### Retsept 🔒
+| | Yo'l | Izoh |
+|---|---|---|
+| POST | `/farms/{farmID}/recipes/preview` | ekin + bosqich → A/B tanklar uchun gramm, kislota ml, ogohlantirishlar. Saqlamaydi |
+
+Batafsil: [api-recipe.md](api-recipe.md).
+
 ### Katalog (agronom standartlari) 🔒
 | | Yo'l | Kim |
 |---|---|---|
