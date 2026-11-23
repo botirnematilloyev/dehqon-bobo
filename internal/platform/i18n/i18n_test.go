@@ -19,7 +19,7 @@ func TestNegotiate(t *testing.T) {
 		"uz-Cyrl-UZ":              UzbekCyrillic,
 		"ru":                      Russian,
 		"ru-RU,ru;q=0.9,en;q=0.8": Russian,
-		"en-US":                   English,
+		"en-US":                   Uzbek, // ingliz yo'q — standart
 		"de-DE":                   Uzbek,
 		"fr;q=0.9, ru;q=0.5":      Russian,
 		"en;q=0.3, uz-Cyrl;q=0.9": UzbekCyrillic,

@@ -13,7 +13,7 @@ import (
 func TestOTPMessagesLocalized(t *testing.T) {
 	for _, k := range []i18n.Key{msgSubject, msgYourCode, msgIntro, msgValidFor, msgNeverShare, msgIgnoreIfNot} {
 		require.True(t, i18n.Registered(k), k)
-		for _, l := range []i18n.Locale{i18n.Uzbek, i18n.Russian, i18n.English} {
+		for _, l := range []i18n.Locale{i18n.Uzbek, i18n.Russian} {
 			require.NotEqual(t, string(k), i18n.T(l, k))
 		}
 	}

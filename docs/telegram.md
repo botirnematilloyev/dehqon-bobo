@@ -10,7 +10,7 @@ orqali (`POST /api/v1/auth/telegram/webapp`), kod/OTP kerak emas.
    - `WEB_APP_URL` — Mini App manzili, **faqat `https://`**.
    - `TELEGRAM_WEBAPP_MAX_AGE` — initData amal qilish muddati (standart `24h`).
 2. **API'ni ishga tushiring** (`make run` yoki `make up-app`). Bot ishga tushganda o'zi:
-   - "/" buyruqlarini qo'yadi: `/start`, `/login` — o'zbek (standart), rus, ingliz tillarida;
+   - "/" buyruqlarini qo'yadi: `/start`, `/login` — o'zbek (standart) va rus tillarida (avval qo'yilgan inglizcha ro'yxat o'chiriladi);
    - chat menyu tugmasini Mini App'ga o'rnatadi (`setChatMenuButton`, barcha chatlar uchun).
      Shuning uchun BotFather'da menyu tugmasini qo'lda sozlash shart emas.
 3. **Ixtiyoriy — to'g'ridan havola** (`t.me/<bot>/<app>`): @BotFather → `/newapp` → botni
@@ -23,7 +23,7 @@ orqali (`POST /api/v1/auth/telegram/webapp`), kod/OTP kerak emas.
 | `/start` | "Ilovani ochish" tugmasi (`web_app`) | `/login` haqida matn |
 | `/login` | brauzer uchun 6 xonali kod (eski usul) | xuddi shunday |
 
-Matnlar foydalanuvchining Telegram tilida (`language_code`): `ru`, `en`, qolganlari — o'zbekcha.
+Matnlar foydalanuvchining Telegram tilida (`language_code`): `ru` — ruscha, qolganlari (ingliz ham) — o'zbekcha.
 
 ## Lokal sinov
 

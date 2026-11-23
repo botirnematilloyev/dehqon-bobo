@@ -18,16 +18,16 @@ const (
 
 func init() {
 	Register(map[Key]Messages{
-		ErrInternal:           {Uzbek: "Serverda xatolik yuz berdi. Birozdan keyin qayta urinib ko‘ring", Russian: "На сервере произошла ошибка. Попробуйте позже", English: "Internal server error"},
-		ErrInvalidJSON:        {Uzbek: "So‘rov ma’lumotlari noto‘g‘ri formatda", Russian: "Неверный формат данных запроса", English: "Invalid JSON body"},
-		ErrInvalidID:          {Uzbek: "Identifikator noto‘g‘ri", Russian: "Неверный идентификатор", English: "Invalid id"},
-		ErrInvalidQuery:       {Uzbek: "So‘rov parametrlari noto‘g‘ri", Russian: "Неверные параметры запроса", English: "Invalid query parameters"},
-		ErrUnauthorized:       {Uzbek: "Tizimga kiring", Russian: "Необходимо войти в систему", English: "Unauthorized"},
-		ErrForbidden:          {Uzbek: "Bu amalga ruxsatingiz yo‘q", Russian: "Недостаточно прав для этого действия", English: "Forbidden"},
-		ErrNotFound:           {Uzbek: "So‘ralgan manzil topilmadi", Russian: "Запрошенный адрес не найден", English: "Not found"},
-		ErrMethodNotAllowed:   {Uzbek: "Bu manzil uchun bunday so‘rov turi qo‘llanmaydi", Russian: "Метод не поддерживается для этого адреса", English: "Method not allowed"},
-		ErrTooManyRequests:    {Uzbek: "So‘rovlar juda ko‘p. Birozdan keyin urinib ko‘ring", Russian: "Слишком много запросов. Попробуйте позже", English: "Too many requests"},
-		ErrServiceUnavailable: {Uzbek: "Xizmat vaqtincha ishlamayapti", Russian: "Сервис временно недоступен", English: "Service unavailable"},
+		ErrInternal:           {Uzbek: "Serverda xatolik yuz berdi. Birozdan keyin qayta urinib ko‘ring", Russian: "На сервере произошла ошибка. Попробуйте позже"},
+		ErrInvalidJSON:        {Uzbek: "So‘rov ma’lumotlari noto‘g‘ri formatda", Russian: "Неверный формат данных запроса"},
+		ErrInvalidID:          {Uzbek: "Identifikator noto‘g‘ri", Russian: "Неверный идентификатор"},
+		ErrInvalidQuery:       {Uzbek: "So‘rov parametrlari noto‘g‘ri", Russian: "Неверные параметры запроса"},
+		ErrUnauthorized:       {Uzbek: "Tizimga kiring", Russian: "Необходимо войти в систему"},
+		ErrForbidden:          {Uzbek: "Bu amalga ruxsatingiz yo‘q", Russian: "Недостаточно прав для этого действия"},
+		ErrNotFound:           {Uzbek: "So‘ralgan manzil topilmadi", Russian: "Запрошенный адрес не найден"},
+		ErrMethodNotAllowed:   {Uzbek: "Bu manzil uchun bunday so‘rov turi qo‘llanmaydi", Russian: "Метод не поддерживается для этого адреса"},
+		ErrTooManyRequests:    {Uzbek: "So‘rovlar juda ko‘p. Birozdan keyin urinib ko‘ring", Russian: "Слишком много запросов. Попробуйте позже"},
+		ErrServiceUnavailable: {Uzbek: "Xizmat vaqtincha ishlamayapti", Russian: "Сервис временно недоступен"},
 	})
 }
 

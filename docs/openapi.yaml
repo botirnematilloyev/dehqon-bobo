@@ -5,7 +5,7 @@ info:
   description: |
     Gidroponika va issiqxona dehqonlari uchun oziq eritma hisobi (WEGA-HPG asosida).
 
-    **Til.** `Accept-Language` sarlavhasi: `uz` (standart), `uz-Cyrl`, `ru`, `en`. Xato va
+    **Til.** Faqat o'zbek va rus: `Accept-Language` — `uz` (standart), `uz-Cyrl`, `ru`; boshqa tillar → `uz`. Xato va
     xabarlar shu tilda, javobda `Content-Language`.
 
     **Xatolar** doim `{"error": "<barqaror kod>", "message": "<tarjima>"}`. Mantiqni `error`
@@ -1048,7 +1048,7 @@ components:
         message: { type: string, examples: ["Для этой культуры и фазы рецепт ещё не добавлен"] }
     I18nName:
       type: object
-      description: '{"uz": lotin, "uz_cyr": kirill, "ru": rus, "en"?}'
+      description: '{"uz": lotin, "uz_cyr": kirill, "ru": rus}'
       additionalProperties: { type: string }
     DeviceInfo:
       type: object

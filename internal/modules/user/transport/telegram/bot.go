@@ -145,7 +145,7 @@ func (b *Bot) setup(ctx context.Context) {
 	for _, lang := range []struct {
 		code   string
 		locale i18n.Locale
-	}{{"", i18n.Uzbek}, {"uz", i18n.Uzbek}, {"ru", i18n.Russian}, {"en", i18n.English}} {
+	}{{"", i18n.Uzbek}, {"uz", i18n.Uzbek}, {"ru", i18n.Russian}} {
 		cmds := []tgapi.BotCommand{
 			{Command: "start", Description: i18n.T(lang.locale, msgCmdStart)},
 			{Command: "login", Description: i18n.T(lang.locale, msgCmdLogin)},
@@ -153,6 +153,11 @@ func (b *Bot) setup(ctx context.Context) {
 		if err := b.client.SetMyCommands(ctx, cmds, lang.code); err != nil {
 			slog.Error("telegram: set commands", "error", err, "language", lang.code)
 		}
+	}
+	// Ilova faqat o'zbek va rus tilida: avval qo'yilgan inglizcha ro'yxat
+	// o'chiriladi — ingliz tilidagi foydalanuvchi standart (o'zbekcha) ni ko'radi.
+	if err := b.client.DeleteMyCommands(ctx, "en"); err != nil {
+		slog.Error("telegram: delete english commands", "error", err)
 	}
 
 	url, ok := b.cfg.miniAppURL()

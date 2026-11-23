@@ -46,73 +46,73 @@ func validationKey(err error) i18n.Key {
 func init() {
 	i18n.Register(map[i18n.Key]i18n.Messages{
 		msgInvalidOTP: {
-			i18n.Uzbek: "Kod noto‘g‘ri yoki muddati o‘tgan", i18n.Russian: "Неверный или просроченный код", i18n.English: "Invalid or expired OTP code",
+			i18n.Uzbek: "Kod noto‘g‘ri yoki muddati o‘tgan", i18n.Russian: "Неверный или просроченный код",
 		},
 		msgUnsupportedProvider: {
-			i18n.Uzbek: "Bu usul bilan kirish qo‘llanmaydi", i18n.Russian: "Этот способ входа не поддерживается", i18n.English: "Unsupported provider",
+			i18n.Uzbek: "Bu usul bilan kirish qo‘llanmaydi", i18n.Russian: "Этот способ входа не поддерживается",
 		},
 		msgInvalidLoginCode: {
-			i18n.Uzbek: "Telegram kodi noto‘g‘ri yoki muddati o‘tgan. Botdan yangi kod oling", i18n.Russian: "Код из Telegram неверный или устарел. Получите новый код в боте", i18n.English: "Invalid or expired login code",
+			i18n.Uzbek: "Telegram kodi noto‘g‘ri yoki muddati o‘tgan. Botdan yangi kod oling", i18n.Russian: "Код из Telegram неверный или устарел. Получите новый код в боте",
 		},
 		msgSessionInvalid: {
-			i18n.Uzbek: "Sessiya tugagan. Qaytadan kiring", i18n.Russian: "Сессия истекла. Войдите снова", i18n.English: "Session is no longer valid",
+			i18n.Uzbek: "Sessiya tugagan. Qaytadan kiring", i18n.Russian: "Сессия истекла. Войдите снова",
 		},
 		msgMissingToken: {
-			i18n.Uzbek: "Tizimga kiring", i18n.Russian: "Необходимо войти в систему", i18n.English: "Missing or invalid Authorization header",
+			i18n.Uzbek: "Tizimga kiring", i18n.Russian: "Необходимо войти в систему",
 		},
 		msgInvalidToken: {
-			i18n.Uzbek: "Kirish muddati tugagan. Qaytadan kiring", i18n.Russian: "Срок входа истёк. Войдите снова", i18n.English: "Invalid token",
+			i18n.Uzbek: "Kirish muddati tugagan. Qaytadan kiring", i18n.Russian: "Срок входа истёк. Войдите снова",
 		},
 		msgAccountExists: {
-			i18n.Uzbek: "Bunday akkaunt allaqachon bor", i18n.Russian: "Такой аккаунт уже существует", i18n.English: "Account already exists",
+			i18n.Uzbek: "Bunday akkaunt allaqachon bor", i18n.Russian: "Такой аккаунт уже существует",
 		},
 		msgCodeSixDigits: {
-			i18n.Uzbek: "Kod 6 ta raqamdan iborat bo‘lishi kerak", i18n.Russian: "Код должен состоять из 6 цифр", i18n.English: "Code must be 6 digits",
+			i18n.Uzbek: "Kod 6 ta raqamdan iborat bo‘lishi kerak", i18n.Russian: "Код должен состоять из 6 цифр",
 		},
 		msgIdentifierRequired: {
-			i18n.Uzbek: "Telefon, email yoki Telegram ID kiriting", i18n.Russian: "Укажите телефон, email или Telegram ID", i18n.English: "Identifier is required",
+			i18n.Uzbek: "Telefon, email yoki Telegram ID kiriting", i18n.Russian: "Укажите телефон, email или Telegram ID",
 		},
 		msgRefreshRequired: {
-			i18n.Uzbek: "refresh_token majburiy", i18n.Russian: "refresh_token обязателен", i18n.English: "Refresh token is required",
+			i18n.Uzbek: "refresh_token majburiy", i18n.Russian: "refresh_token обязателен",
 		},
 		msgInitDataInvalid: {
-			i18n.Uzbek: "Telegram ma’lumoti tasdiqlanmadi. Ilovani bot orqali qayta oching", i18n.Russian: "Данные Telegram не прошли проверку. Откройте приложение через бота заново", i18n.English: "Telegram init data failed verification. Reopen the app from the bot",
+			i18n.Uzbek: "Telegram ma’lumoti tasdiqlanmadi. Ilovani bot orqali qayta oching", i18n.Russian: "Данные Telegram не прошли проверку. Откройте приложение через бота заново",
 		},
 		msgInitDataExpired: {
-			i18n.Uzbek: "Kirish muddati o‘tgan. Ilovani bot orqali qayta oching", i18n.Russian: "Сессия устарела. Откройте приложение через бота заново", i18n.English: "Init data has expired. Reopen the app from the bot",
+			i18n.Uzbek: "Kirish muddati o‘tgan. Ilovani bot orqali qayta oching", i18n.Russian: "Сессия устарела. Откройте приложение через бота заново",
 		},
 		msgInitDataRequired: {
-			i18n.Uzbek: "init_data majburiy", i18n.Russian: "init_data обязателен", i18n.English: "init_data is required",
+			i18n.Uzbek: "init_data majburiy", i18n.Russian: "init_data обязателен",
 		},
 		msgUserNotFound: {
-			i18n.Uzbek: "Foydalanuvchi topilmadi", i18n.Russian: "Пользователь не найден", i18n.English: "User not found",
+			i18n.Uzbek: "Foydalanuvchi topilmadi", i18n.Russian: "Пользователь не найден",
 		},
 		msgUsernameTaken: {
-			i18n.Uzbek: "Bu nom band. Boshqasini tanlang", i18n.Russian: "Это имя занято. Выберите другое", i18n.English: "Username is already taken",
+			i18n.Uzbek: "Bu nom band. Boshqasini tanlang", i18n.Russian: "Это имя занято. Выберите другое",
 		},
 		msgUsernameInvalid: {
-			i18n.Uzbek: "Nom 3–32 belgi: kichik lotin harflari, raqamlar, - va _", i18n.Russian: "Имя: 3–32 символа — строчные латинские буквы, цифры, - и _", i18n.English: "Username must be 3-32 characters: lowercase letters, digits, - and _",
+			i18n.Uzbek: "Nom 3–32 belgi: kichik lotin harflari, raqamlar, - va _", i18n.Russian: "Имя: 3–32 символа — строчные латинские буквы, цифры, - и _",
 		},
 		msgUsernameReserved: {
-			i18n.Uzbek: "Bu nomni tanlab bo‘lmaydi", i18n.Russian: "Это имя зарезервировано", i18n.English: "This username is reserved",
+			i18n.Uzbek: "Bu nomni tanlab bo‘lmaydi", i18n.Russian: "Это имя зарезервировано",
 		},
 		msgLocaleInvalid: {
-			i18n.Uzbek: "Til noto‘g‘ri: uz, uz_cyr yoki ru", i18n.Russian: "Неверный язык: uz, uz_cyr или ru", i18n.English: "Invalid locale: uz, uz_cyr or ru",
+			i18n.Uzbek: "Til noto‘g‘ri: uz, uz_cyr yoki ru", i18n.Russian: "Неверный язык: uz, uz_cyr или ru",
 		},
 		msgLocationInvalid: {
-			i18n.Uzbek: "Viloyat yoki tuman noto‘g‘ri tanlangan", i18n.Russian: "Неверно выбраны область или район", i18n.English: "Invalid region or district",
+			i18n.Uzbek: "Viloyat yoki tuman noto‘g‘ri tanlangan", i18n.Russian: "Неверно выбраны область или район",
 		},
 		msgFullNameEmpty: {
-			i18n.Uzbek: "Ism bo‘sh bo‘lmasligi kerak", i18n.Russian: "Имя не может быть пустым", i18n.English: "Full name cannot be empty",
+			i18n.Uzbek: "Ism bo‘sh bo‘lmasligi kerak", i18n.Russian: "Имя не может быть пустым",
 		},
 		msgFullNameTooLong: {
-			i18n.Uzbek: "Ism juda uzun (100 belgigacha)", i18n.Russian: "Имя слишком длинное (до 100 символов)", i18n.English: "Full name is too long",
+			i18n.Uzbek: "Ism juda uzun (100 belgigacha)", i18n.Russian: "Имя слишком длинное (до 100 символов)",
 		},
 		msgRegionIDInvalid: {
-			i18n.Uzbek: "Viloyat ID si noto‘g‘ri", i18n.Russian: "Неверный ID области", i18n.English: "region_id must be a positive integer",
+			i18n.Uzbek: "Viloyat ID si noto‘g‘ri", i18n.Russian: "Неверный ID области",
 		},
 		msgDistrictIDInvalid: {
-			i18n.Uzbek: "Tuman ID si noto‘g‘ri", i18n.Russian: "Неверный ID района", i18n.English: "district_id must be a positive integer",
+			i18n.Uzbek: "Tuman ID si noto‘g‘ri", i18n.Russian: "Неверный ID района",
 		},
 	})
 }

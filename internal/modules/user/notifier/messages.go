@@ -15,22 +15,22 @@ const (
 func init() {
 	i18n.Register(map[i18n.Key]i18n.Messages{
 		msgSubject: {
-			i18n.Uzbek: "Tasdiqlash kodi", i18n.Russian: "Код подтверждения", i18n.English: "Verification code",
+			i18n.Uzbek: "Tasdiqlash kodi", i18n.Russian: "Код подтверждения",
 		},
 		msgYourCode: {
-			i18n.Uzbek: "Tasdiqlash kodingiz", i18n.Russian: "Ваш код подтверждения", i18n.English: "Your verification code",
+			i18n.Uzbek: "Tasdiqlash kodingiz", i18n.Russian: "Ваш код подтверждения",
 		},
 		msgIntro: {
-			i18n.Uzbek: "Hisobingizga kirish uchun quyidagi kodni kiriting.", i18n.Russian: "Введите этот код, чтобы войти в аккаунт.", i18n.English: "Enter this code to sign in to your account.",
+			i18n.Uzbek: "Hisobingizga kirish uchun quyidagi kodni kiriting.", i18n.Russian: "Введите этот код, чтобы войти в аккаунт.",
 		},
 		msgValidFor: {
-			i18n.Uzbek: "Kod 5 daqiqa amal qiladi.", i18n.Russian: "Код действует 5 минут.", i18n.English: "The code is valid for 5 minutes.",
+			i18n.Uzbek: "Kod 5 daqiqa amal qiladi.", i18n.Russian: "Код действует 5 минут.",
 		},
 		msgNeverShare: {
-			i18n.Uzbek: "Kodni hech kimga bermang — xodimlarimiz ham hech qachon so‘ramaydi.", i18n.Russian: "Никому не сообщайте код — наши сотрудники никогда его не спрашивают.", i18n.English: "Never share the code — our staff will never ask for it.",
+			i18n.Uzbek: "Kodni hech kimga bermang — xodimlarimiz ham hech qachon so‘ramaydi.", i18n.Russian: "Никому не сообщайте код — наши сотрудники никогда его не спрашивают.",
 		},
 		msgIgnoreIfNot: {
-			i18n.Uzbek: "Agar bu so‘rovni siz yubormagan bo‘lsangiz, xatni e’tiborsiz qoldiring.", i18n.Russian: "Если вы не запрашивали код, просто проигнорируйте это письмо.", i18n.English: "If you did not request this, ignore this email.",
+			i18n.Uzbek: "Agar bu so‘rovni siz yubormagan bo‘lsangiz, xatni e’tiborsiz qoldiring.", i18n.Russian: "Если вы не запрашивали код, просто проигнорируйте это письмо.",
 		},
 	})
 }

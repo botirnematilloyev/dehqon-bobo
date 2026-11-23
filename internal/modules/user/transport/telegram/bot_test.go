@@ -439,17 +439,17 @@ func TestBot_SpeaksUserLanguage(t *testing.T) {
 		}
 	})
 
-	t.Run("english", func(t *testing.T) {
+	t.Run("english telegram falls back to uzbek", func(t *testing.T) {
 		api, auth := newFakeAPI(t), &fakeAuth{code: "501294"}
 		newTestBot(t, api, auth).handleUpdate(ctx, withLang("/help", "en-GB"))
-		require.Equal(t, "Unknown command. Send /login.", api.methodCalls("sendMessage")[0].Body["text"])
+		require.Equal(t, "Noma’lum buyruq. /login yuboring.", api.methodCalls("sendMessage")[0].Body["text"])
 	})
 }
 
 func TestBotMessagesRegistered(t *testing.T) {
 	for _, k := range []i18n.Key{msgStart, msgUnknown, msgTooMany, msgError, msgExpired, msgCodeLabel, msgCodeValid, msgButtonLogin, msgButtonRenew, msgStartApp, msgButtonOpen, msgCmdStart, msgCmdLogin, msgMenuButton} {
 		require.True(t, i18n.Registered(k), k)
-		for _, l := range []i18n.Locale{i18n.Uzbek, i18n.Russian, i18n.English} {
+		for _, l := range []i18n.Locale{i18n.Uzbek, i18n.Russian} {
 			require.NotEqual(t, string(k), i18n.T(l, k))
 		}
 	}
@@ -465,7 +465,7 @@ func TestBot_Setup(t *testing.T) {
 		newTestBot(t, api, &fakeAuth{}).setup(ctx)
 
 		cmds := api.methodCalls("setMyCommands")
-		require.Len(t, cmds, 4)
+		require.Len(t, cmds, 3, "standart (uz), uz, ru")
 		byLang := map[string]string{}
 		for _, c := range cmds {
 			lang, _ := c.Body["language_code"].(string)
@@ -475,7 +475,10 @@ func TestBot_Setup(t *testing.T) {
 		}
 		require.Equal(t, "Ilovani ochish", byLang[""])
 		require.Equal(t, "Открыть приложение", byLang["ru"])
-		require.Equal(t, "Open the app", byLang["en"])
+		require.NotContains(t, byLang, "en")
+		del := api.methodCalls("deleteMyCommands")
+		require.Len(t, del, 1)
+		require.Equal(t, "en", del[0].Body["language_code"], "eski inglizcha ro'yxat o'chiriladi")
 
 		menu := api.methodCalls("setChatMenuButton")
 		require.Len(t, menu, 1)
@@ -488,7 +491,7 @@ func TestBot_Setup(t *testing.T) {
 	t.Run("no menu button without an https url", func(t *testing.T) {
 		api := newFakeAPI(t)
 		NewBot(tgapi.New("t", tgapi.WithBaseURL(api.URL)), &fakeAuth{}, Config{WebAppURL: "http://localhost"}).setup(ctx)
-		require.Len(t, api.methodCalls("setMyCommands"), 4)
+		require.Len(t, api.methodCalls("setMyCommands"), 3)
 		require.Empty(t, api.methodCalls("setChatMenuButton"))
 	})
 }

@@ -7,14 +7,14 @@ Hamma yo'llar `/api/v1` ostida. 🔒 = `Authorization: Bearer <access_token>` ke
 
 ## Til (Accept-Language)
 
-Server `Accept-Language` sarlavhasini o'qiydi va xato/xabar matnini shu tilda qaytaradi.
+Ilova faqat **o'zbek** (standart) va **rus** tilida. Server `Accept-Language` sarlavhasini
+o'qiydi va xato/xabar matnini shu tilda qaytaradi.
 
 | So'ralgan | Javob tili (`Content-Language`) |
 |---|---|
-| yo'q, `uz`, `uz-Latn`, qo'llanmaydigan til (`de`, …) | `uz` (lotin, standart) |
+| yo'q, `uz`, `uz-Latn`, boshqa til (`en`, `de`, …) | `uz` (lotin, standart) |
 | `uz-Cyrl` | `uz-Cyrl` (lotindan avtomatik o'giriladi; EC, pH, NO3 kabi texnik so'zlar lotinda qoladi) |
 | `ru`, `ru-RU` | `ru` |
-| `en`, `en-US` | `en` |
 
 `q=` vaznlari hisobga olinadi. Har javobda `Content-Language` va `Vary: Accept-Language` bor.
 
@@ -29,7 +29,7 @@ Server `Accept-Language` sarlavhasini o'qiydi va xato/xabar matnini shu tilda qa
 
 Kodlar `<modul>.<sabab>` ko'rinishida: `common.*`, `auth.*`, `user.*`, `location.*`,
 `farm.*`, `catalog.*`. Ro'yxat: `internal/platform/i18n/common.go` va har modulning
-`transport/http/messages.go` fayli. Yangi kalit qo'shilsa, uz/ru/en matni bo'lmasa
+`transport/http/messages.go` fayli. Yangi kalit qo'shilsa, uz/ru matni bo'lmasa
 `TestMessagesRegistered` yiqiladi.
 
 ## Endpointlar

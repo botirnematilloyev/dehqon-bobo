@@ -64,7 +64,7 @@ func Missing() []string {
 	defer mu.RUnlock()
 	var out []string
 	for k, m := range catalog {
-		for _, l := range []Locale{Uzbek, Russian, English} {
+		for _, l := range []Locale{Uzbek, Russian} {
 			if m[l] == "" {
 				out = append(out, fmt.Sprintf("%s [%s]", k, l))
 			}

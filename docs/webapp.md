@@ -9,7 +9,7 @@
 |---|---|
 | `src/telegram.ts` | Telegram SDK: `ready`, `expand`, tema, BackButton, haptic |
 | `src/api.ts` | API klient: initData bilan kirish, 401 da bir marta qayta kirish, `Accept-Language` |
-| `src/i18n.ts` | uz / ru / en matnlari; hisob ogohlantirishlari va maslahat kodlari → matn |
+| `src/i18n.ts` | o'zbek (standart) va rus matnlari; hisob ogohlantirishlari va maslahat kodlari → matn |
 | `src/icons.tsx` | Prototipdagi ikonkalar (ekinlar rangli, qolganlari `currentColor`) |
 | `src/screens/` | Birinchi sozlash, Bosh sahifa, Retsept, Jurnal, O'lchov |
 

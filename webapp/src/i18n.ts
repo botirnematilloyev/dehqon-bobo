@@ -4,13 +4,12 @@ import type { I18nName } from './types'
 // keladi; bu yerda faqat interfeys matnlari va kodlar → matn (ogohlantirish,
 // maslahat).
 
-export type Lang = 'uz' | 'ru' | 'en'
+// Ilova faqat o'zbek (standart) va rus tilida.
+export type Lang = 'uz' | 'ru'
 
 export function langFrom(code: string): Lang {
   const c = code.toLowerCase()
-  if (c.startsWith('ru')) return 'ru'
-  if (c.startsWith('en')) return 'en'
-  return 'uz'
+  return c.startsWith('ru') ? 'ru' : 'uz'
 }
 
 /** Ko'p tilli nom: tanlangan til → o'zbekcha → birinchisi. */
@@ -157,75 +156,8 @@ const ru: Strings = {
   allGood: 'Всё в норме',
 }
 
-const en: Strings = {
-  loading: 'Loading…',
-  motto: 'Hard work pays off',
-  openInTelegram: 'Open the app from Telegram',
-  openInTelegramHint: 'Send /start to the bot and tap “Open the app”.',
-  retry: 'Retry',
-  back: 'Back',
-  save: 'Save',
 
-  onbTitle: 'Let’s set up your farm',
-  onbHint: 'Three questions — the recipe is calculated from them.',
-  region: 'Region',
-  district: 'District or city',
-  waterSource: 'Water source',
-  system: 'Growing system',
-  continue: 'Continue',
-  ws_well: 'Well', ws_canal: 'Canal', ws_tap: 'Tap water', ws_filter: 'Filter / RO',
-  sys_greenhouse_soil: 'Greenhouse, soil', sys_substrate: 'Substrate or pots', sys_hydroponics: 'Hydroponics', sys_open_field: 'Open field',
-
-  hello: 'Hello',
-  mixSolution: 'Mix a solution',
-  mixSolutionHint: 'Pick a crop and stage — we’ll calculate the grams',
-  journal: 'Journal',
-  measure: 'Measure',
-  water: 'Water',
-  waterEstimate: 'estimate',
-  lastRecipes: 'Recent solutions',
-  noRecipes: 'No solutions yet.',
-  all: 'All',
-
-  crop: 'Crop',
-  stage: 'Stage',
-  st_seedling: 'Seedling', st_vegetative: 'Vegetative', st_fruiting: 'Fruiting',
-  tankVolume: 'Tank volume, L',
-  acids: 'Acid (for water bicarbonate)',
-  calculate: 'Calculate',
-  tankA: 'Tank A — calcium and nitrates',
-  tankB: 'Tank B — sulfates, phosphates, micro',
-  oneTank: 'One tank: fully dissolve group 1 first, then group 2.',
-  group1: 'Calcium and nitrates',
-  group2: 'Sulfates, phosphates, micro',
-  acidsTitle: 'Acid',
-  expectedEC: 'Expected EC',
-  phRange: 'pH range',
-  grams: 'g',
-  ml: 'ml',
-  saveToJournal: 'Save to journal',
-  saved: 'Saved to journal',
-  markMixed: 'I mixed it',
-  mixedDone: 'Mixed',
-  planned: 'Not mixed yet',
-  measureNow: 'Measure EC and pH',
-  agronomNotReviewed: 'Not yet reviewed by an agronomist',
-  agronomReviewed: 'Reviewed by an agronomist ✓',
-
-  ecIn: 'EC — tank solution',
-  phIn: 'pH — tank solution',
-  ecDrain: 'EC — drain',
-  drainPct: 'Drain, %',
-  optional: 'optional',
-  result: 'Result',
-  st_low: 'low', st_ok: 'OK', st_high: 'high',
-  addWater: (l: number) => `Add ${l} L of water to the tank.`,
-  addSalts: (pct: number) => `Add another ${pct}% of the recipe salts (no acid):`,
-  injector: (n: number) => `Change the injector ratio to 1:${n}.`,
-  allGood: 'All within range',
-}
-
-export const strings: Record<Lang, Strings> = { uz, ru, en }
+export const strings: Record<Lang, Strings> = { uz, ru }
 
 // Hisob ogohlantirishlari (server `warnings[].code`).
 const warnings: Record<Lang, Record<string, string>> = {
@@ -255,19 +187,6 @@ const warnings: Record<Lang, Record<string, string>> = {
     micro_fertilizer_missing: 'Нет удобрения для микроэлемента.',
     solubility_exceeded: 'Концентрат слишком густой — соль может не раствориться. Возьмите ёмкость больше.',
   },
-  en: {
-    profile_not_reviewed: 'An agronomist has not reviewed this recipe yet.',
-    water_is_estimate: 'The water analysis is an estimate — enter a lab analysis for accuracy.',
-    water_salinity_above_crop_threshold: 'Your water is too saline for this crop — yield may drop.',
-    water_exceeds_target: 'The water already has more of this element than needed.',
-    poor_ion_balance: 'The water analysis is incomplete or wrong — the result is approximate.',
-    no_acid_selected: 'The water has a lot of bicarbonate — pick an acid.',
-    bicarbonate_left: 'Not enough acid — pH may rise.',
-    acid_over_target: 'The acid added more nutrient than needed.',
-    infeasible_salts: 'This recipe cannot be made with these salts — ask an agronomist.',
-    micro_fertilizer_missing: 'No fertilizer for a micronutrient.',
-    solubility_exceeded: 'The concentrate is too strong — salt may not dissolve. Use a bigger tank.',
-  },
 }
 
 const advice: Record<Lang, Record<string, string>> = {
@@ -284,13 +203,6 @@ const advice: Record<Lang, Record<string, string>> = {
     drain_ec_high: 'EC дренажа высокая — соли накапливаются, увеличьте полив.',
     drain_pct_low: 'Дренажа мало — немного увеличьте полив.',
     drain_pct_high: 'Дренажа много — уменьшите полив.',
-  },
-  en: {
-    ph_high_add_acid: 'pH is high — add a little acid.',
-    ph_low_check_acid: 'pH is low — use less acid next time.',
-    drain_ec_high: 'Drain EC is high — salts are building up, irrigate more.',
-    drain_pct_low: 'Too little drain — irrigate a bit more.',
-    drain_pct_high: 'Too much drain — irrigate less.',
   },
 }
 

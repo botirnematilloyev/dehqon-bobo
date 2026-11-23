@@ -54,19 +54,19 @@ describe('Api', () => {
 describe('i18n', () => {
   it('maps Telegram language codes', () => {
     expect(langFrom('ru-RU')).toBe('ru')
-    expect(langFrom('en')).toBe('en')
+    expect(langFrom('en')).toBe('uz') // ingliz yo'q — o'zbekcha
     expect(langFrom('uz')).toBe('uz')
     expect(langFrom('de')).toBe('uz')
   })
   it('picks names with fallbacks', () => {
     expect(pickName({ uz: 'Pomidor', ru: 'Томат' }, 'ru')).toBe('Томат')
-    expect(pickName({ uz: 'Pomidor' }, 'en')).toBe('Pomidor')
+    expect(pickName({ uz: 'Pomidor' }, 'ru')).toBe('Pomidor')
   })
   it('knows every server warning code', () => {
     for (const code of ['profile_not_reviewed', 'water_is_estimate', 'water_salinity_above_crop_threshold', 'water_exceeds_target',
       'poor_ion_balance', 'no_acid_selected', 'bicarbonate_left', 'acid_over_target', 'infeasible_salts',
       'micro_fertilizer_missing', 'solubility_exceeded']) {
-      for (const l of ['uz', 'ru', 'en'] as const) expect(warningText(l, code)).not.toBe(code)
+      for (const l of ['uz', 'ru'] as const) expect(warningText(l, code)).not.toBe(code)
     }
   })
 })

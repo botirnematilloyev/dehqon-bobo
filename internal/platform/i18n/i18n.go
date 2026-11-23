@@ -21,19 +21,18 @@ const (
 	Uzbek         Locale = "uz"      // lotin
 	UzbekCyrillic Locale = "uz-Cyrl" // kirill
 	Russian       Locale = "ru"
-	English       Locale = "en"
 )
 
-// Default — Accept-Language yo'q yoki tanish til topilmasa.
+// Default — Accept-Language yo'q yoki tanish til topilmasa (ingliz va
+// boshqa tillar ham — ilova faqat o'zbek va rus tilida).
 const Default = Uzbek
 
 var (
-	supported = []Locale{Uzbek, UzbekCyrillic, Russian, English}
+	supported = []Locale{Uzbek, UzbekCyrillic, Russian}
 	matcher   = language.NewMatcher([]language.Tag{
 		language.MustParse("uz-Latn"),
 		language.MustParse("uz-Cyrl"),
 		language.Russian,
-		language.English,
 	})
 )
 
@@ -58,8 +57,6 @@ func FromUserLocale(s string) Locale {
 		return UzbekCyrillic
 	case "ru":
 		return Russian
-	case "en":
-		return English
 	}
 	return Uzbek
 }

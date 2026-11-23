@@ -170,6 +170,15 @@ type setMyCommandsRequest struct {
 	LanguageCode string       `json:"language_code,omitempty"`
 }
 
+type deleteMyCommandsRequest struct {
+	LanguageCode string `json:"language_code,omitempty"`
+}
+
+// DeleteMyCommands — shu til uchun qo'yilgan buyruqlar ro'yxatini o'chiradi.
+func (c *Client) DeleteMyCommands(ctx context.Context, languageCode string) error {
+	return c.call(ctx, "deleteMyCommands", deleteMyCommandsRequest{LanguageCode: languageCode}, nil)
+}
+
 // SetMyCommands — "/" menyusidagi buyruqlar. languageCode bo'sh — standart
 // (tili mos kelmagan barcha foydalanuvchilar uchun).
 func (c *Client) SetMyCommands(ctx context.Context, cmds []BotCommand, languageCode string) error {
