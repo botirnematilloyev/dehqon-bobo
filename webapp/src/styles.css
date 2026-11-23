@@ -113,3 +113,24 @@ select.input { appearance: none; }
 .tank-badge { width: 32px; height: 32px; border-radius: 10px; background: var(--primary); color: var(--primary-ink); display: grid; place-items: center; font-weight: 800; font-family: Manrope, Inter, sans-serif; flex-shrink: 0; }
 .chev { color: var(--muted); flex-shrink: 0; }
 .result-ok { display: flex; align-items: center; gap: 10px; color: var(--primary-dark); font-weight: 700; }
+
+/* ---- splash (kirish) ---- */
+.splash { position: fixed; inset: 0; overflow: hidden; z-index: 10; animation: splash-in 0.35s ease-out; }
+.splash-wrap.leaving .splash { animation: splash-out 0.3s ease-in forwards; }
+.splash-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.splash-title { position: absolute; left: 0; right: 0; top: calc(60px + env(safe-area-inset-top)); display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0 32px; text-align: center; }
+.splash-logo { width: 72px; height: 72px; border-radius: 22px; background: #1F4D29; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(31, 77, 41, 0.28); }
+.splash-night .splash-logo { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45); }
+.splash-name { font-family: Inter, system-ui, sans-serif; font-size: 38px; font-weight: 700; letter-spacing: -0.02em; }
+.splash-motto { font-size: 19px; font-weight: 500; line-height: 1.35; }
+.splash-sun { animation: splash-glow 3s ease-in-out infinite; transform-origin: center; }
+.splash-plant { animation: splash-sway 4s ease-in-out infinite; transform-origin: 195px 790px; transform-box: view-box; }
+.splash-drop { animation: splash-drop 2.4s ease-in infinite; }
+@keyframes splash-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes splash-out { to { opacity: 0; } }
+@keyframes splash-glow { 50% { opacity: 0.85; } }
+@keyframes splash-sway { 50% { transform: rotate(2deg); } }
+@keyframes splash-drop { 0% { transform: translateY(-14px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .splash, .splash-wrap.leaving .splash, .splash-sun, .splash-plant, .splash-drop { animation: none; }
+}

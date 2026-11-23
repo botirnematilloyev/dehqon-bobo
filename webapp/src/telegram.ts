@@ -29,6 +29,8 @@ interface WebApp {
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void }
   HapticFeedback?: { notificationOccurred(t: 'success' | 'error' | 'warning'): void; selectionChanged(): void }
   onEvent(event: string, cb: () => void): void
+  setHeaderColor?(color: string): void
+  setBackgroundColor?(color: string): void
 }
 
 declare global {
@@ -48,6 +50,16 @@ export function initTelegram(): void {
   if (!tg) return
   tg.ready()
   tg.expand()
+}
+
+/** Telegram oynasi sarlavhasi va foni (Bot API 6.1+; eski mijozda jim o'tadi). */
+export function setChrome(color: string): void {
+  try {
+    tg?.setHeaderColor?.(color)
+    tg?.setBackgroundColor?.(color)
+  } catch {
+    // eski Telegram versiyasi — e'tiborsiz
+  }
 }
 
 export function haptic(kind: 'success' | 'error' | 'warning' | 'select'): void {

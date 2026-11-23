@@ -21,6 +21,7 @@ export function pickName(name: I18nName | undefined, lang: Lang): string {
 
 const uz = {
   loading: 'Yuklanmoqda…',
+  motto: 'Mehnatning tagi — rohat',
   openInTelegram: 'Ilovani Telegram orqali oching',
   openInTelegramHint: 'Botda /start yuboring va «Ilovani ochish» tugmasini bosing.',
   retry: 'Qayta urinish',
@@ -89,6 +90,7 @@ export type Strings = typeof uz
 
 const ru: Strings = {
   loading: 'Загрузка…',
+  motto: 'Терпение и труд всё перетрут',
   openInTelegram: 'Откройте приложение через Telegram',
   openInTelegramHint: 'Отправьте боту /start и нажмите «Открыть приложение».',
   retry: 'Повторить',
@@ -155,6 +157,7 @@ const ru: Strings = {
 
 const en: Strings = {
   loading: 'Loading…',
+  motto: 'Hard work pays off',
   openInTelegram: 'Open the app from Telegram',
   openInTelegramHint: 'Send /start to the bot and tap “Open the app”.',
   retry: 'Retry',
