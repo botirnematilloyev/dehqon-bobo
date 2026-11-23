@@ -41,3 +41,21 @@ Boshqa muhit fayli: `ENV_FILE=.env.staging docker compose --env-file .env.stagin
 Har push (main) va PR'da: `gofmt`, `go vet` (oddiy va `integration` tegi), unit testlar `-race`,
 integration testlar (testcontainers), API image build va compose konfiguratsiyasi tekshiruvi.
 Image registry'ga hali yuklanmaydi.
+
+## Serverda nginx allaqachon bo'lsa (masalan binary.uz VPS)
+
+Caddy (`web`) o'rniga mavjud nginx: u Mini App statik fayllarini beradi va `/api` ni
+API'ga uzatadi, HTTPS'ni `certbot` qo'yadi.
+
+```bash
+git clone https://github.com/botirnematilloyev/dehqon-bobo.git /opt/dehqon-bobo && cd /opt/dehqon-bobo
+# .env: TRUST_PROXY=true, WEB_APP_URL=https://<domen>, bo'sh portlar (DB_PORT, REDIS_PORT, HTTP_PORT)
+docker compose --profile app up -d --build api   # postgres, redis, migrate, api (web emas)
+make webapp-build                                 # webapp/dist
+cp build/nginx/dehqonbobo.binary.uz.conf /etc/nginx/sites-available/
+ln -s /etc/nginx/sites-available/dehqonbobo.binary.uz.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d dehqonbobo.binary.uz
+```
+
+Yangilash: `git pull && docker compose --profile app up -d --build api && make webapp-build`.

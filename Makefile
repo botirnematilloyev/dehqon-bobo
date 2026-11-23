@@ -4,7 +4,7 @@ export
 MIGRATIONS_DIR = migrations
 DB_URL = postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
-.PHONY: migrate-create migrate-up migrate-down migrate-version migrate-force migrate-docker run test test-cover test-integration test-integration-mac up up-app down logs
+.PHONY: migrate-create migrate-up migrate-down migrate-version migrate-force migrate-docker run test test-cover test-integration test-integration-mac up up-app down logs webapp-build
 
 migrate-create:
 	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(name)
@@ -48,6 +48,12 @@ up-app:
 	docker compose --profile app up -d --build
 logs:
 	docker compose --profile app logs -f api
+# Mini App build (Node o'rnatmasdan, Docker'da) → webapp/dist.
+# node_modules alohida volume'da: hostdagi (macOS) node_modules buzilmaydi.
+webapp-build:
+	docker run --rm -v $(CURDIR)/webapp:/app -v dehqon_webapp_node_modules:/app/node_modules -w /app node:22-alpine \
+		sh -c "npm ci --no-audit --no-fund && npm run build"
+
 # Migratsiyalarni Docker orqali (lokal `migrate` CLI kerak emas)
 migrate-docker:
 	docker compose --profile app run --rm migrate
