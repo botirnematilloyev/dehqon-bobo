@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"dehqon-bobo/internal/modules/user/domain"
+	"dehqon-bobo/internal/platform/i18n"
 	tgapi "dehqon-bobo/internal/platform/telegram"
 
 	"github.com/stretchr/testify/require"
@@ -49,7 +50,10 @@ func newFakeAPI(t *testing.T) *fakeAPI {
 		if f.sentOnce {
 			updates = "[]"
 		}
-		f.sentOnce = true
+		// Yangilanishlar faqat birinchi getUpdates'da (setup chaqiruvlari hisobga olinmaydi).
+		if method == "getUpdates" {
+			f.sentOnce = true
+		}
 		f.mu.Unlock()
 
 		switch method {
@@ -127,15 +131,31 @@ func messageUpdate(text string) tgapi.Update {
 func TestBot_Commands(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("start greets the user", func(t *testing.T) {
+	t.Run("start opens the mini app", func(t *testing.T) {
 		api, auth := newFakeAPI(t), &fakeAuth{code: "123456"}
 
 		newTestBot(t, api, auth).handleUpdate(ctx, messageUpdate("/start"))
 
 		sent := api.methodCalls("sendMessage")
 		require.Len(t, sent, 1)
-		require.Equal(t, textStart, sent[0].Body["text"])
+		require.Equal(t, i18n.T(i18n.Uzbek, msgStartApp), sent[0].Body["text"])
+		row := sent[0].Body["reply_markup"].(map[string]any)["inline_keyboard"].([]any)[0].([]any)
+		button := row[0].(map[string]any)
+		require.Equal(t, "🌱 Ilovani ochish", button["text"])
+		require.Equal(t, map[string]any{"url": "https://dehqonbobo.uz"}, button["web_app"])
 		require.Empty(t, auth.startCalls, "/start must not create a login code")
+	})
+
+	t.Run("start without a mini app url falls back to /login text", func(t *testing.T) {
+		for _, url := range []string{"", "http://localhost:5173"} {
+			api, auth := newFakeAPI(t), &fakeAuth{code: "123456"}
+			bot := NewBot(tgapi.New("t", tgapi.WithBaseURL(api.URL)), auth, Config{WebAppURL: url})
+			bot.handleUpdate(ctx, messageUpdate("/start"))
+
+			sent := api.methodCalls("sendMessage")
+			require.Equal(t, i18n.T(i18n.Uzbek, msgStart), sent[0].Body["text"], url)
+			require.Nil(t, sent[0].Body["reply_markup"], "Telegram http Mini App'ni ochmaydi")
+		}
 	})
 
 	t.Run("login sends the code with both buttons", func(t *testing.T) {
@@ -182,7 +202,7 @@ func TestBot_Commands(t *testing.T) {
 		edits := api.methodCalls("editMessageText")
 		require.Len(t, edits, 1, "the old code must stop looking valid on screen")
 		require.EqualValues(t, 800, edits[0].Body["message_id"])
-		require.Equal(t, textExpired, edits[0].Body["text"])
+		require.Equal(t, i18n.T(i18n.Uzbek, msgExpired), edits[0].Body["text"])
 	})
 
 	t.Run("omits the login button without a web app url", func(t *testing.T) {
@@ -209,7 +229,7 @@ func TestBot_Commands(t *testing.T) {
 
 		newTestBot(t, api, auth).handleUpdate(ctx, messageUpdate("salom"))
 
-		require.Equal(t, textUnknown, api.methodCalls("sendMessage")[0].Body["text"])
+		require.Equal(t, i18n.T(i18n.Uzbek, msgUnknown), api.methodCalls("sendMessage")[0].Body["text"])
 		require.Empty(t, auth.startCalls)
 	})
 
@@ -218,7 +238,7 @@ func TestBot_Commands(t *testing.T) {
 
 		newTestBot(t, api, auth).handleUpdate(ctx, messageUpdate("/login"))
 
-		require.Equal(t, textTooMany, api.methodCalls("sendMessage")[0].Body["text"])
+		require.Equal(t, i18n.T(i18n.Uzbek, msgTooMany), api.methodCalls("sendMessage")[0].Body["text"])
 	})
 
 	t.Run("hides internal errors", func(t *testing.T) {
@@ -227,7 +247,7 @@ func TestBot_Commands(t *testing.T) {
 		newTestBot(t, api, auth).handleUpdate(ctx, messageUpdate("/login"))
 
 		text := api.methodCalls("sendMessage")[0].Body["text"].(string)
-		require.Equal(t, textError, text)
+		require.Equal(t, i18n.T(i18n.Uzbek, msgError), text)
 		require.NotContains(t, text, "deadline")
 	})
 
@@ -300,7 +320,7 @@ func TestBot_Renew(t *testing.T) {
 		newTestBot(t, api, auth).handleUpdate(ctx, callback(800))
 
 		require.Len(t, api.methodCalls("answerCallbackQuery"), 1)
-		require.Equal(t, textTooMany, api.methodCalls("sendMessage")[0].Body["text"])
+		require.Equal(t, i18n.T(i18n.Uzbek, msgTooMany), api.methodCalls("sendMessage")[0].Body["text"])
 	})
 
 	t.Run("expires a different live message", func(t *testing.T) {
@@ -378,5 +398,97 @@ func TestBot_Run(t *testing.T) {
 		case <-time.After(3 * time.Second):
 			t.Fatal("Run did not return after the context was cancelled")
 		}
+	})
+}
+
+func TestBot_SpeaksUserLanguage(t *testing.T) {
+	ctx := context.Background()
+	withLang := func(text, lang string) tgapi.Update {
+		u := messageUpdate(text)
+		u.Message.From.LanguageCode = lang
+		return u
+	}
+
+	t.Run("russian telegram gets russian texts and buttons", func(t *testing.T) {
+		api, auth := newFakeAPI(t), &fakeAuth{code: "501294", prev: &domain.TelegramLastLogin{Code: "1", MessageID: 800}}
+		bot := newTestBot(t, api, auth)
+
+		bot.handleUpdate(ctx, withLang("/start", "ru"))
+		bot.handleUpdate(ctx, withLang("/login", "ru"))
+
+		sent := api.methodCalls("sendMessage")
+		require.Len(t, sent, 2)
+		require.Equal(t, "Здравствуйте! Нажмите кнопку, чтобы открыть приложение.", sent[0].Body["text"])
+		startRow := sent[0].Body["reply_markup"].(map[string]any)["inline_keyboard"].([]any)[0].([]any)
+		require.Equal(t, "🌱 Открыть приложение", startRow[0].(map[string]any)["text"])
+		require.Equal(t, "🔒 Код: 501294\n\nКод действует 2 минуты.", sent[1].Body["text"])
+
+		row := sent[1].Body["reply_markup"].(map[string]any)["inline_keyboard"].([]any)[0].([]any)
+		require.Equal(t, "Войти ↗", row[0].(map[string]any)["text"])
+		require.Equal(t, "🔄 Обновить", row[1].(map[string]any)["text"])
+
+		edits := api.methodCalls("editMessageText")
+		require.Equal(t, "🔒 Срок действия кода истёк. Нажмите кнопку, чтобы получить новый.", edits[0].Body["text"])
+	})
+
+	t.Run("unknown or empty language falls back to uzbek", func(t *testing.T) {
+		for _, lang := range []string{"", "de", "uz"} {
+			api, auth := newFakeAPI(t), &fakeAuth{code: "501294"}
+			newTestBot(t, api, auth).handleUpdate(ctx, withLang("/login", lang))
+			require.Equal(t, "🔒 Kod: 501294\n\nKod 2 daqiqa amal qiladi.", api.methodCalls("sendMessage")[0].Body["text"], lang)
+		}
+	})
+
+	t.Run("english", func(t *testing.T) {
+		api, auth := newFakeAPI(t), &fakeAuth{code: "501294"}
+		newTestBot(t, api, auth).handleUpdate(ctx, withLang("/help", "en-GB"))
+		require.Equal(t, "Unknown command. Send /login.", api.methodCalls("sendMessage")[0].Body["text"])
+	})
+}
+
+func TestBotMessagesRegistered(t *testing.T) {
+	for _, k := range []i18n.Key{msgStart, msgUnknown, msgTooMany, msgError, msgExpired, msgCodeLabel, msgCodeValid, msgButtonLogin, msgButtonRenew, msgStartApp, msgButtonOpen, msgCmdStart, msgCmdLogin, msgMenuButton} {
+		require.True(t, i18n.Registered(k), k)
+		for _, l := range []i18n.Locale{i18n.Uzbek, i18n.Russian, i18n.English} {
+			require.NotEqual(t, string(k), i18n.T(l, k))
+		}
+	}
+	// uz-Cyrl transliteratsiyasi kodni buzmaydi.
+	require.Equal(t, "🔒 Код: 123456\n\nКод 2 дақиқа амал қилади.", textCode(i18n.UzbekCyrillic, "123456"))
+}
+
+func TestBot_Setup(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("sets commands per language and the mini app menu button", func(t *testing.T) {
+		api := newFakeAPI(t)
+		newTestBot(t, api, &fakeAuth{}).setup(ctx)
+
+		cmds := api.methodCalls("setMyCommands")
+		require.Len(t, cmds, 4)
+		byLang := map[string]string{}
+		for _, c := range cmds {
+			lang, _ := c.Body["language_code"].(string)
+			first := c.Body["commands"].([]any)[0].(map[string]any)
+			require.Equal(t, "start", first["command"])
+			byLang[lang] = first["description"].(string)
+		}
+		require.Equal(t, "Ilovani ochish", byLang[""])
+		require.Equal(t, "Открыть приложение", byLang["ru"])
+		require.Equal(t, "Open the app", byLang["en"])
+
+		menu := api.methodCalls("setChatMenuButton")
+		require.Len(t, menu, 1)
+		require.Nil(t, menu[0].Body["chat_id"], "standart — barcha chatlar uchun")
+		mb := menu[0].Body["menu_button"].(map[string]any)
+		require.Equal(t, "web_app", mb["type"])
+		require.Equal(t, map[string]any{"url": "https://dehqonbobo.uz"}, mb["web_app"])
+	})
+
+	t.Run("no menu button without an https url", func(t *testing.T) {
+		api := newFakeAPI(t)
+		NewBot(tgapi.New("t", tgapi.WithBaseURL(api.URL)), &fakeAuth{}, Config{WebAppURL: "http://localhost"}).setup(ctx)
+		require.Len(t, api.methodCalls("setMyCommands"), 4)
+		require.Empty(t, api.methodCalls("setChatMenuButton"))
 	})
 }

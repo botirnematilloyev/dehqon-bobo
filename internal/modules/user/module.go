@@ -72,6 +72,9 @@ func New(
 		service.AuthConfig{
 			OTPTTL:     cfg.OTPTTL,
 			RefreshTTL: cfg.RefreshTTL,
+
+			TelegramBotToken: tgCfg.BotToken,
+			WebAppMaxAge:     tgCfg.WebAppMaxAge,
 		},
 	)
 
@@ -173,6 +176,8 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 		r.Post("/otp/request", m.handler.RequestOTP)
 		r.Post("/otp/verify", m.handler.VerifyOTP)
 		r.Post("/telegram/verify", m.handler.VerifyTelegramLogin)
+		// Mini App: Telegram imzolagan initData bilan kirish (kod kerak emas).
+		r.Post("/telegram/webapp", m.handler.VerifyTelegramWebApp)
 		r.Post("/refresh", m.handler.Refresh)
 
 		r.Group(func(r chi.Router) {

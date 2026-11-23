@@ -1,0 +1,23 @@
+# SITE_ADDRESS: domen (masalan app.dehqonbobo.uz) — Caddy Let's Encrypt
+# sertifikatini o'zi oladi (80 va 443 portlar ochiq bo'lishi kerak).
+# Lokal: ":80" — faqat HTTP.
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+	handle /healthz {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		root * /srv
+		# index.html keshlanmaydi (yangi versiya darhol), assets — abadiy (nomida hash).
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

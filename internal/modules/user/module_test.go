@@ -50,6 +50,7 @@ func TestRegisterRoutes_Protection(t *testing.T) {
 		{"request otp", http.MethodPost, "/api/v1/auth/otp/request", false},
 		{"verify otp", http.MethodPost, "/api/v1/auth/otp/verify", false},
 		{"verify telegram", http.MethodPost, "/api/v1/auth/telegram/verify", false},
+		{"verify telegram webapp", http.MethodPost, "/api/v1/auth/telegram/webapp", false},
 		{"refresh", http.MethodPost, "/api/v1/auth/refresh", false},
 		{"logout", http.MethodPost, "/api/v1/auth/logout", true},
 		{"get me", http.MethodGet, "/api/v1/me", true},

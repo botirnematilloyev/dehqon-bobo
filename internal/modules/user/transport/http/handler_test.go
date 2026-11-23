@@ -26,6 +26,7 @@ type fakeAuthService struct {
 	refreshCalls    []string
 	logoutCalls     []int64
 	telegramCalls   []service.VerifyTelegramLoginInput
+	webAppCalls     []service.VerifyTelegramWebAppInput
 
 	listSessionsCalls []int64
 	revokeCalls       [][2]int64
@@ -65,6 +66,15 @@ func (f *fakeAuthService) Logout(ctx context.Context, sessionID int64) error {
 func (f *fakeAuthService) VerifyTelegramLogin(ctx context.Context,
 	in service.VerifyTelegramLoginInput) (*service.AuthResult, error) {
 	f.telegramCalls = append(f.telegramCalls, in)
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.result, nil
+}
+
+func (f *fakeAuthService) VerifyTelegramWebApp(ctx context.Context,
+	in service.VerifyTelegramWebAppInput) (*service.AuthResult, error) {
+	f.webAppCalls = append(f.webAppCalls, in)
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -379,4 +389,39 @@ func (f *fakeAuthService) RevokeSession(ctx context.Context, userID, sessionID i
 func (f *fakeAuthService) LogoutAll(ctx context.Context, userID int64) error {
 	f.logoutAllCalls = append(f.logoutAllCalls, userID)
 	return f.err
+}
+
+func TestHandler_VerifyTelegramWebApp(t *testing.T) {
+	t.Run("passes init data and device info", func(t *testing.T) {
+		svc := &fakeAuthService{result: okResult()}
+		rec := httptest.NewRecorder()
+		NewHandler(svc).VerifyTelegramWebApp(rec, postJSON(t,
+			`{"init_data":"auth_date=1&user=%7B%7D&hash=ab","platform":"android","device_name":"Telegram"}`))
+
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		require.Len(t, svc.webAppCalls, 1)
+		require.Equal(t, "auth_date=1&user=%7B%7D&hash=ab", svc.webAppCalls[0].InitData)
+		require.Equal(t, "Telegram", *svc.webAppCalls[0].DeviceName)
+		require.NotNil(t, svc.webAppCalls[0].IPAddress)
+	})
+
+	for name, tc := range map[string]struct {
+		body   string
+		err    error
+		status int
+		code   string
+	}{
+		"empty":    {`{"init_data":"  "}`, nil, http.StatusBadRequest, "auth.init_data_required"},
+		"bad json": {`{`, nil, http.StatusBadRequest, "common.invalid_json"},
+		"bad sig":  {`{"init_data":"x"}`, domain.ErrInitDataInvalid, http.StatusUnauthorized, "auth.invalid_init_data"},
+		"expired":  {`{"init_data":"x"}`, domain.ErrInitDataExpired, http.StatusUnauthorized, "auth.init_data_expired"},
+		"no bot":   {`{"init_data":"x"}`, domain.ErrTelegramUnavailable, http.StatusServiceUnavailable, "common.service_unavailable"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			NewHandler(&fakeAuthService{err: tc.err}).VerifyTelegramWebApp(rec, postJSON(t, tc.body))
+			require.Equal(t, tc.status, rec.Code)
+			require.Contains(t, rec.Body.String(), `"error":"`+tc.code+`"`)
+		})
+	}
 }

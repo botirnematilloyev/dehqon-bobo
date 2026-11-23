@@ -104,3 +104,122 @@ anion** (HPG modeli): elektroneytrallik bo'yicha suvdagi Na, Cl va qoldiq HCO3 g
 | 404 | `recipe.farm_not_found`, `recipe.crop_not_found`, `recipe.profile_not_found` |
 | 409 | `recipe.water_analysis_required` |
 | 422 | `recipe.catalog_incomplete` — katalogda tuz/parametr yo'q; agronom tuzatadi |
+
+# Jurnal (saqlangan retseptlar)
+
+| | Yo'l | Izoh |
+|---|---|---|
+| POST | `/farms/{farmID}/recipes` | preview bilan bir xil so'rov + ixtiyoriy `plot_id` → 201 |
+| GET | `/farms/{farmID}/recipes?limit=20&before_id=&plot_id=` | yangisi birinchi, `limit` ≤ 100 |
+| GET | `/farms/{farmID}/recipes/{id}` | to'liq: tarkib + saqlangan hisob |
+| POST | `/farms/{farmID}/recipes/{id}/mixed` | "tayyorladim" — idempotent (qayta bosish vaqtni o'zgartirmaydi) |
+| DELETE | `/farms/{farmID}/recipes/{id}` | faqat tayyorlanmagan → 204; tayyorlangani 409 |
+
+- **Hisob serverda qayta bajariladi** — mijoz yuborgan grammlarga ishonilmaydi.
+- **`recipe` = o'sha paytdagi preview javobi** (`calc_snapshot`, o'zgarmas). Katalog,
+  xo'jalik sozlamalari yoki formula keyin o'zgarsa ham jurnal yozuvi o'zgarmaydi;
+  `calc_version` qaysi formula bilan hisoblanganini aytadi.
+- `items` — `batch_items`: `tank` = `single` (to'g'ridan usul, hammasi bitta bakda) yoki
+  `A` / `B` / `C`; tuzlar `grams`, kislotalar `ml`.
+- `target_ec` — kutilgan EC (suv + kislota + tuzlar bahosi). Keyingi qadamda o'lchov shu bilan solishtiriladi.
+- Manfiy gramm (tuzlar bilan yig'ib bo'lmaydigan profil) preview'da ko'rinadi, lekin
+  saqlanmaydi: `422 recipe.infeasible`.
+- Ro'yxat sahifalari: javobdagi `next_before_id` ni keyingi so'rovda `before_id` qiling; `null` — oxiri.
+
+```json
+{
+  "id": 1, "crop": "tomato", "stage": "fruiting", "plot_id": 1, "method": "direct",
+  "volume_l": 200, "stock_tank_l": null, "injector_ratio": null, "target_ec": 2.69,
+  "status": "planned", "created_at": 1763400000, "mixed_at": null, "calc_version": "hpg@0a8eb86+water/1",
+  "items": [{"code": "CaNO3", "tank": "single", "grams": 172.5}, {"code": "HNO3_38", "tank": "single", "ml": 40.4}],
+  "recipe": { "...": "preview javobi" }
+}
+```
+
+| Status | `error` |
+|---|---|
+| 404 | `recipe.not_found`, `recipe.plot_not_found` (issiqxona shu xo'jalikda emas yoki arxivda) |
+| 409 | `recipe.already_mixed` |
+| 422 | `recipe.infeasible` |
+
+# O'lchovlar va korrektor
+
+| | Yo'l | Izoh |
+|---|---|---|
+| POST | `/farms/{farmID}/measurements` | o'lchov + baholash → 201 |
+| GET | `/farms/{farmID}/measurements?plot_id=&batch_id=&limit=&before_id=` | yangisi birinchi |
+| POST | `/farms/{farmID}/recipes/{id}/correction` | aylanma bak uchun tuzatuvchi eritma (HPG korrektori), saqlamaydi |
+
+## O'lchov
+
+```json
+{"batch_id": 1, "ec_in": 3.2, "ph_in": 7.2, "ec_drain": 4.7, "drain_pct": 30, "tank_volume_l": 150, "note": "ertalab"}
+```
+
+`ec_in`, `ph_in`, `ec_drain` dan kamida bittasi kerak. `measured_at` yo'q bo'lsa — hozir.
+`batch_id` berilsa issiqxona retseptdan olinadi va o'lchov retsept bilan solishtiriladi:
+
+| Tekshiruv | Asos | Parametr (calc_parameters, 000013) |
+|---|---|---|
+| EC kirish ↔ retseptning `target_ec` | `|farq| / kutilgan > chegara` | `ec_tolerance_pct` (10%) |
+| pH kirish ↔ profil `ph_min…ph_max` | oraliq | — (profil) |
+| EC drenaj − EC kirish | tuz to'planishi | `drain_ec_excess_max` (1.0 mS/sm) |
+| drenaj ulushi | oraliq | `drain_pct_min` / `drain_pct_max` (20 / 50%) |
+
+Parametrlar agronom standarti (tasdiq kutilmoqda), xo'jalik o'zgartira oladi
+(`/farms/{id}/settings/calc-parameters`). Yo'q bo'lsa — `422 recipe.catalog_incomplete`.
+
+**EC tuzatish** — aralashtirish balansi: `(EC − EC_suv)` erigan tuzlarga proporsional
+(kichik o'zgarishlar uchun chiziqli; HPG korrektori ham shu farazda):
+
+| Holat | `correction.action` | Hisob |
+|---|---|---|
+| bak, EC yuqori | `add_water` | `water_l = V·(EC − EC_kut)/(EC_kut − EC_suv)` |
+| bak, EC past | `add_salts` | `fraction = (EC_kut − EC)/(EC − EC_suv)`; `items` — retsept tuzlari × ulush × V/V_retsept. **Kislota qo'shilmaydi** (bikarbonat allaqachon neytrallangan) |
+| A/B | `adjust_injector` | `injector_ratio = N·(EC − EC_suv)/(EC_kut − EC_suv)` |
+
+`V` — `tank_volume_l` (yo'q = retsept hajmi). pH uchun ml hisoblanmaydi: buning uchun
+eritmaning titrlash egri chizig'i kerak — faqat yo'nalish (`ph_high_add_acid`, `ph_low_check_acid`).
+
+Javob shakli (raqamlar misol uchun):
+
+```json
+{
+  "measurement": {"id": 3, "batch_id": 1, "plot_id": 1, "ec_in": 3.2, "ph_in": 7.2, "measured_at": 1763400000, "...": "..."},
+  "assessment": {
+    "ec": {"value": 3.2, "expected": 2.69, "deviation_pct": 19, "tolerance_pct": 10, "status": "high"},
+    "ph": {"value": 7.2, "min": 5.5, "max": 6.5, "status": "high"},
+    "drain": {"ec_excess": 1.5, "ec_excess_max": 1, "ec_status": "high", "pct": 30, "pct_min": 20, "pct_max": 50, "pct_status": "ok"},
+    "correction": {"action": "add_water", "water_l": 40.9},
+    "advice": ["ec_high_add_water", "ph_high_add_acid", "drain_ec_high"]
+  }
+}
+```
+
+Maslahat kodlari: `ec_low_add_salts`, `ec_high_add_water`, `ec_adjust_injector`,
+`ph_high_add_acid`, `ph_low_check_acid`, `drain_ec_high`, `drain_pct_low`, `drain_pct_high`.
+
+## Korrektor (aylanma bak)
+
+```json
+{"ec_now": 2.96, "volume_now_l": 100, "volume_final_l": 200, "acids": ["HNO3_38"]}
+```
+
+HPG modeli (`hpg.Correct` bilan bir xil):
+
+```
+joriy   = retseptda erishilgan tarkib × (EC_hozir / EC_kutilgan)
+V_tuz   = V_yakuniy − V_hozir
+C_tuz   = (C_yakuniy·V_yakuniy − C_joriy·V_hozir) / V_tuz      (C_yakuniy = erishilgan tarkib)
+```
+
+Tuzatuvchi eritma o'sha suv va kislotalar bilan tayyorlanadi, shuning uchun uning
+retsepti oddiy hisob bilan chiqadi (`recipe` — preview javobi shaklida, `V_tuz` litr uchun).
+`acids` yo'q bo'lsa — retseptdagilar. Qaysidir ion `C_tuz` da manfiy bo'lsa (bak juda quyuq)
+— `dilute_only: true`, `water_to_add_l = V·(EC_hozir − EC_suv)/(EC_kut − EC_suv) − V`, tuz yo'q.
+
+| Status | `error` |
+|---|---|
+| 400 | `recipe.invalid_measurement`, `recipe.invalid_correction` |
+| 404 | `recipe.not_found` (batch), `recipe.plot_not_found` |
+| 422 | `recipe.catalog_incomplete` (o'lchov parametri yo'q) |

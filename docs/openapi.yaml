@@ -1,0 +1,1492 @@
+openapi: 3.1.0
+info:
+  title: Dehqon Bobo API
+  version: 0.1.0
+  description: |
+    Gidroponika va issiqxona dehqonlari uchun oziq eritma hisobi (WEGA-HPG asosida).
+
+    **Til.** `Accept-Language` sarlavhasi: `uz` (standart), `uz-Cyrl`, `ru`, `en`. Xato va
+    xabarlar shu tilda, javobda `Content-Language`.
+
+    **Xatolar** doim `{"error": "<barqaror kod>", "message": "<tarjima>"}`. Mantiqni `error`
+    kodiga quring (`common.*`, `auth.*`, `user.*`, `location.*`, `farm.*`, `catalog.*`,
+    `recipe.*`, `season.*`).
+
+    **Vaqt** — unix sekund (int64). **Birliklar** — EC mS/sm, ionlar mg/L (element), HCO3 mmol/L.
+
+    **Sahifalash** (ro'yxatlar): `limit` (≤100, standart 20) va `before_id`; javobdagi
+    `next_before_id` ni keyingi so'rovga bering, `null` — oxiri.
+servers:
+  - url: /api/v1
+security:
+  - bearer: []
+
+tags:
+  - name: auth
+  - name: me
+  - name: location
+  - name: farms
+  - name: settings
+  - name: catalog
+  - name: recipes
+  - name: measurements
+  - name: seasons
+  - name: admin
+
+paths:
+  # ---------------- auth ----------------
+  /auth/telegram/verify:
+    post:
+      tags: [auth]
+      summary: Telegram bot bergan kod bilan kirish
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [code]
+                  properties:
+                    code: { type: string, pattern: '^\d{6}$' }
+                - $ref: '#/components/schemas/DeviceInfo'
+      responses:
+        '200': { $ref: '#/components/responses/Auth' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/telegram/webapp:
+    post:
+      tags: [auth]
+      summary: Telegram Mini App ichidan kirish (asosiy usul)
+      description: |
+        `init_data` — `Telegram.WebApp.initData` satri, o'zgartirmasdan. Server imzoni bot tokeni
+        bilan tekshiradi (HMAC-SHA256, Telegram hujjati) va `auth_date` eskirmaganini
+        (`TELEGRAM_WEBAPP_MAX_AGE`, standart 24 soat). Kod/OTP kerak emas. Yangi foydalanuvchi
+        Telegram'dagi ism va tilni oladi (`ru` → ru, qolganlari → uz).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [init_data]
+                  properties:
+                    init_data: { type: string }
+                - $ref: '#/components/schemas/DeviceInfo'
+      responses:
+        '200': { $ref: '#/components/responses/Auth' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /auth/otp/request:
+    post:
+      tags: [auth]
+      summary: Email OTP so'rash (zaxira usul)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, identifier]
+              properties:
+                provider: { type: string, enum: [email, telegram] }
+                identifier: { type: string }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/otp/verify:
+    post:
+      tags: [auth]
+      summary: OTP kodini tasdiqlash
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required: [provider, identifier, code]
+                  properties:
+                    provider: { type: string }
+                    identifier: { type: string }
+                    code: { type: string }
+                - $ref: '#/components/schemas/DeviceInfo'
+      responses:
+        '200': { $ref: '#/components/responses/Auth' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Tokenni yangilash
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/Auth' }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Joriy qurilmadan chiqish
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/logout-all:
+    post:
+      tags: [auth]
+      summary: Barcha qurilmalardan chiqish
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } }
+        '401': { $ref: '#/components/responses/Error' }
+
+  # ---------------- me ----------------
+  /me:
+    get:
+      tags: [me]
+      summary: Profil
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Profile' } } }
+        '401': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [me]
+      summary: Profilni o'zgartirish (yuborilmagan maydon o'zgarmaydi)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                full_name: { type: string }
+                locale: { type: string, enum: [uz, uz_cyr, ru] }
+                region_id: { type: integer }
+                district_id: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Profile' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /me/onboarding:
+    post:
+      tags: [me, farms]
+      summary: Birinchi sozlash — xo'jalik va taxminiy suv tahlili
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [region_id, water_source]
+              properties:
+                region_id: { type: integer }
+                district_id: { type: integer }
+                water_source: { $ref: '#/components/schemas/WaterSource' }
+                system_type: { $ref: '#/components/schemas/SystemType' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/FarmOverview' } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /me/sessions:
+    get:
+      tags: [me]
+      summary: Faol qurilmalar
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions: { type: array, items: { $ref: '#/components/schemas/Session' } }
+  /me/sessions/{id}:
+    delete:
+      tags: [me]
+      summary: Qurilmani chiqarish
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # ---------------- location ----------------
+  /regions:
+    get:
+      tags: [location]
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  regions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { $ref: '#/components/schemas/I18nName' }
+  /districts:
+    get:
+      tags: [location]
+      security: []
+      parameters:
+        - { name: region_id, in: query, schema: { type: integer } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  districts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        region_id: { type: integer }
+                        name: { $ref: '#/components/schemas/I18nName' }
+
+  # ---------------- farms ----------------
+  /farms:
+    get:
+      tags: [farms]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  farms: { type: array, items: { $ref: '#/components/schemas/Farm' } }
+    post:
+      tags: [farms]
+      requestBody: { $ref: '#/components/requestBodies/Farm' }
+      responses:
+        '201':
+          description: Yaratildi
+          content: { application/json: { schema: { $ref: '#/components/schemas/Farm' } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [farms]
+      summary: Xo'jalik, faol suv tahlili va issiqxonalar
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/FarmOverview' } } }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [farms]
+      requestBody: { $ref: '#/components/requestBodies/Farm' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Farm' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [farms]
+      responses:
+        '204': { description: OK }
+        '404': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/plots:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [farms]
+      parameters:
+        - { name: archived, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plots: { type: array, items: { $ref: '#/components/schemas/Plot' } }
+    post:
+      tags: [farms]
+      requestBody: { $ref: '#/components/requestBodies/Plot' }
+      responses:
+        '201':
+          description: Yaratildi
+          content: { application/json: { schema: { $ref: '#/components/schemas/Plot' } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/plots/{plotID}:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/PlotID' }]
+    patch:
+      tags: [farms]
+      requestBody: { $ref: '#/components/requestBodies/Plot' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Plot' } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/plots/{plotID}/archive:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/PlotID' }]
+    post:
+      tags: [farms]
+      summary: Issiqxonani arxivlash (o'chirmaydi)
+      responses:
+        '204': { description: OK }
+        '404': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/water-analyses:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [farms]
+      summary: Suv tahlillari tarixi
+      parameters: [{ $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analyses: { type: array, items: { $ref: '#/components/schemas/WaterAnalysis' } }
+    post:
+      tags: [farms]
+      summary: Yangi tahlil (faol bo'ladi)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source]
+              properties:
+                source: { $ref: '#/components/schemas/WaterSource' }
+                estimate: { type: boolean, description: true = manba bo'yicha taxminiy (katalogdan) }
+                ec: { type: number }
+                ph: { type: number }
+                ca: { type: number }
+                mg: { type: number }
+                na: { type: number }
+                k: { type: number }
+                cl: { type: number }
+                so4: { type: number }
+                no3: { type: number }
+                hco3_mmol: { type: number }
+                lab_name: { type: string }
+                sampled_at: { type: integer, format: int64 }
+      responses:
+        '201':
+          description: Yaratildi
+          content: { application/json: { schema: { $ref: '#/components/schemas/WaterAnalysis' } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/water-analyses/active:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [farms]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/WaterAnalysis' } } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # ---------------- settings ----------------
+  /farms/{farmID}/settings/fertilizers:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [settings]
+      summary: O'g'itlar — standart + xo'jalik qiymati
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fertilizers: { type: array, items: { $ref: '#/components/schemas/EffectiveFertilizer' } }
+  /farms/{farmID}/settings/fertilizers/{code}:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/Code' }]
+    put:
+      tags: [settings]
+      summary: O'z qopidagi qiymatlar va narx
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                brand: { type: string }
+                elements: { $ref: '#/components/schemas/Elements' }
+                concentration_pct: { type: number }
+                density_g_ml: { type: number }
+                stock_g_l: { type: number }
+                stock_density_g_ml: { type: number }
+                price_uzs_per_kg: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/EffectiveFertilizer' } } }
+        '400': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [settings]
+      summary: Standartga qaytarish
+      responses:
+        '204': { description: OK }
+  /farms/{farmID}/settings/calc-parameters:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [settings]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calc_parameters: { type: array, items: { $ref: '#/components/schemas/EffectiveParam' } }
+  /farms/{farmID}/settings/calc-parameters/{key}:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/Key' }]
+    put:
+      tags: [settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value: { type: number }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/EffectiveParam' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [settings]
+      responses:
+        '204': { description: OK }
+
+  # ---------------- catalog ----------------
+  /catalog/fertilizers:
+    get:
+      tags: [catalog]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fertilizers: { type: array, items: { $ref: '#/components/schemas/Fertilizer' } }
+  /catalog/water-sources:
+    get:
+      tags: [catalog]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  water_sources: { type: array, items: { $ref: '#/components/schemas/WaterSourceDefault' } }
+  /catalog/calc-parameters:
+    get:
+      tags: [catalog]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calc_parameters: { type: array, items: { $ref: '#/components/schemas/CalcParameter' } }
+  /catalog/crops:
+    get:
+      tags: [catalog]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crops: { type: array, items: { $ref: '#/components/schemas/Crop' } }
+  /catalog/crops/{code}/profiles:
+    parameters: [{ $ref: '#/components/parameters/Code' }]
+    get:
+      tags: [catalog]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crop: { $ref: '#/components/schemas/Crop' }
+                  profiles: { type: array, items: { $ref: '#/components/schemas/CropProfile' } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # ---------------- recipes ----------------
+  /farms/{farmID}/recipes/preview:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    post:
+      tags: [recipes]
+      summary: Retsept hisobi (saqlamaydi)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RecipeRequest' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Recipe' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/recipes:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [recipes]
+      summary: Jurnal
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/BeforeID' }
+        - { name: plot_id, in: query, schema: { type: integer, format: int64 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recipes: { type: array, items: { $ref: '#/components/schemas/BatchSummary' } }
+                  next_before_id: { type: [integer, 'null'], format: int64 }
+    post:
+      tags: [recipes]
+      summary: Retseptni saqlash (hisob serverda qayta bajariladi)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/RecipeRequest'
+                - type: object
+                  properties:
+                    plot_id: { type: integer, format: int64, description: ochiq mavsumga avtomatik bog'lanadi }
+      responses:
+        '201':
+          description: Saqlandi
+          content: { application/json: { schema: { $ref: '#/components/schemas/BatchDetail' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/recipes/{id}:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [recipes]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/BatchDetail' } } }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [recipes]
+      summary: Faqat tayyorlanmaganini o'chirish
+      responses:
+        '204': { description: OK }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/recipes/{id}/mixed:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [recipes]
+      summary: "\"Tayyorladim\" (idempotent)"
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/BatchDetail' } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/recipes/{id}/correction:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [recipes, measurements]
+      summary: Aylanma bak — tuzatuvchi eritma (HPG korrektori), saqlamaydi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ec_now, volume_now_l, volume_final_l]
+              properties:
+                ec_now: { type: number }
+                volume_now_l: { type: number }
+                volume_final_l: { type: number }
+                acids: { type: array, items: { type: string }, description: "yo'q = retseptdagilar" }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_mg_l: { $ref: '#/components/schemas/Nutrients' }
+                  correction_mg_l: { $ref: '#/components/schemas/Nutrients' }
+                  correction_volume_l: { type: number }
+                  dilute_only: { type: boolean }
+                  water_to_add_l: { type: [number, 'null'] }
+                  recipe:
+                    oneOf:
+                      - $ref: '#/components/schemas/Recipe'
+                      - type: 'null'
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # ---------------- measurements ----------------
+  /farms/{farmID}/measurements:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [measurements]
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/BeforeID' }
+        - { name: plot_id, in: query, schema: { type: integer, format: int64 } }
+        - { name: batch_id, in: query, schema: { type: integer, format: int64 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  measurements: { type: array, items: { $ref: '#/components/schemas/Measurement' } }
+                  next_before_id: { type: [integer, 'null'], format: int64 }
+    post:
+      tags: [measurements]
+      summary: O'lchov + baholash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: ec_in, ph_in, ec_drain dan kamida bittasi
+              properties:
+                batch_id: { type: integer, format: int64 }
+                plot_id: { type: integer, format: int64 }
+                ec_in: { type: number }
+                ph_in: { type: number }
+                ec_drain: { type: number }
+                ph_drain: { type: number }
+                drain_pct: { type: number }
+                solution_temp_c: { type: number }
+                note: { type: string, maxLength: 1000 }
+                measured_at: { type: integer, format: int64 }
+                tank_volume_l: { type: number }
+      responses:
+        '201':
+          description: Saqlandi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  measurement: { $ref: '#/components/schemas/Measurement' }
+                  assessment: { $ref: '#/components/schemas/Assessment' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  # ---------------- seasons ----------------
+  /farms/{farmID}/plots/{plotID}/seasons:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/PlotID' }]
+    post:
+      tags: [seasons]
+      summary: Mavsum boshlash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [crop]
+              properties:
+                crop: { type: string }
+                stage: { $ref: '#/components/schemas/Stage' }
+                started_at: { type: integer, format: int64 }
+      responses:
+        '201':
+          description: Yaratildi
+          content: { application/json: { schema: { $ref: '#/components/schemas/Season' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/seasons:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }]
+    get:
+      tags: [seasons]
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/BeforeID' }
+        - { name: plot_id, in: query, schema: { type: integer, format: int64 } }
+        - { name: open, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  seasons: { type: array, items: { $ref: '#/components/schemas/Season' } }
+                  next_before_id: { type: [integer, 'null'], format: int64 }
+  /farms/{farmID}/seasons/{id}:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [seasons]
+      summary: Natija kartochkasi
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/SeasonCard' } } }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [seasons]
+      summary: Bosqichni almashtirish
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stage]
+              properties:
+                stage: { $ref: '#/components/schemas/Stage' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Season' } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /farms/{farmID}/seasons/{id}/end:
+    parameters: [{ $ref: '#/components/parameters/FarmID' }, { $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [seasons]
+      summary: Mavsum yakuni
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [yield_kg]
+              properties:
+                yield_kg: { type: number }
+                area_m2: { type: number }
+                fertilizer_cost_uzs: { type: integer, format: int64 }
+                ended_at: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/SeasonCard' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  # ---------------- admin (agronom / admin) ----------------
+  /admin/catalog/fertilizers/{code}:
+    parameters: [{ $ref: '#/components/parameters/Code' }]
+    patch:
+      tags: [admin]
+      summary: O'g'it standartini o'zgartirish (agronom)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                elements: { $ref: '#/components/schemas/Elements' }
+                solubility_g_l: { type: number }
+                stock_g_l: { type: number }
+                concentration_pct: { type: number }
+                density_g_ml: { type: number }
+                source: { type: string }
+                is_reviewed: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Fertilizer' } } }
+        '403': { $ref: '#/components/responses/Error' }
+  /admin/catalog/water-sources/{source}:
+    parameters:
+      - { name: source, in: path, required: true, schema: { $ref: '#/components/schemas/WaterSource' } }
+      - { name: region_id, in: query, schema: { type: integer } }
+    put:
+      tags: [admin]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/WaterSourceDefault' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/WaterSourceDefault' } } }
+        '403': { $ref: '#/components/responses/Error' }
+  /admin/catalog/calc-parameters/{key}:
+    parameters: [{ $ref: '#/components/parameters/Key' }]
+    patch:
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value: { type: number }
+                is_reviewed: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/CalcParameter' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /admin/catalog/crops/{code}/profiles:
+    parameters: [{ $ref: '#/components/parameters/Code' }]
+    post:
+      tags: [admin]
+      summary: Yangi profil (doim draft)
+      requestBody: { $ref: '#/components/requestBodies/CropProfile' }
+      responses:
+        '201':
+          description: Yaratildi
+          content: { application/json: { schema: { $ref: '#/components/schemas/CropProfile' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/catalog/crop-profiles/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    put:
+      tags: [admin]
+      summary: Draftni o'zgartirish
+      requestBody: { $ref: '#/components/requestBodies/CropProfile' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/CropProfile' } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/catalog/crop-profiles/{id}/approve:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [admin]
+      summary: Tasdiqlash (avvalgi tasdiqlangani arxivga)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/CropProfile' } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/users:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, maximum: 200 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users: { type: array, items: { type: object } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  per_page: { type: integer }
+        '403': { $ref: '#/components/responses/Error' }
+  /admin/users/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [admin]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object } } } }
+        '404': { $ref: '#/components/responses/Error' }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    FarmID: { name: farmID, in: path, required: true, schema: { type: integer, format: int64 } }
+    PlotID: { name: plotID, in: path, required: true, schema: { type: integer, format: int64 } }
+    Id: { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+    Code: { name: code, in: path, required: true, schema: { type: string } }
+    Key: { name: key, in: path, required: true, schema: { type: string } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+    BeforeID: { name: before_id, in: query, schema: { type: integer, format: int64 } }
+
+  responses:
+    Error:
+      description: Xato (matn Accept-Language tilida)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Auth:
+      description: Tokenlar
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              access_token: { type: string }
+              refresh_token: { type: string }
+              expires_at: { type: integer, format: int64 }
+              user:
+                type: object
+                properties:
+                  id: { type: integer, format: int64 }
+                  username: { type: string }
+                  full_name: { type: [string, 'null'] }
+
+  requestBodies:
+    Farm:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name: { type: string }
+              region_id: { type: integer }
+              district_id: { type: integer }
+              system_type: { $ref: '#/components/schemas/SystemType' }
+              mixing_method: { $ref: '#/components/schemas/Method' }
+              injector_ratio: { type: integer }
+              stock_tank_l: { type: number }
+    Plot:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name: { type: string }
+              area_m2: { type: number }
+              default_volume_l: { type: number }
+              is_archived: { type: boolean }
+    CropProfile:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [stage, targets_mg_l, ph_min, ph_max]
+            properties:
+              stage: { $ref: '#/components/schemas/Stage' }
+              title: { type: string }
+              source: { type: string }
+              targets_mg_l: { $ref: '#/components/schemas/Targets' }
+              ec_target: { type: number }
+              ph_min: { type: number }
+              ph_max: { type: number }
+
+  schemas:
+    Status:
+      type: object
+      properties:
+        status: { type: string, examples: [sent, logged out] }
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string, examples: [recipe.profile_not_found] }
+        message: { type: string, examples: ["Для этой культуры и фазы рецепт ещё не добавлен"] }
+    I18nName:
+      type: object
+      description: '{"uz": lotin, "uz_cyr": kirill, "ru": rus, "en"?}'
+      additionalProperties: { type: string }
+    DeviceInfo:
+      type: object
+      properties:
+        device_id: { type: string }
+        device_name: { type: string }
+        fcm_token: { type: string }
+        platform: { type: string }
+        os: { type: string }
+    Stage: { type: string, enum: [seedling, vegetative, fruiting] }
+    Method: { type: string, enum: [direct, ab] }
+    WaterSource: { type: string, enum: [well, canal, tap, filter] }
+    SystemType: { type: string, enum: [greenhouse_soil, substrate, hydroponics, open_field] }
+    Elements:
+      type: object
+      description: Element → foiz. Kalitlar N_NO3, N_NH4, P, K, Ca, Mg, S, Cl, Fe, Mn, B, Zn, Cu, Mo, Co, Si
+      additionalProperties: { type: number }
+    Profile:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        username: { type: string }
+        full_name: { type: [string, 'null'] }
+        avatar_url: { type: [string, 'null'] }
+        locale: { type: string }
+        region_id: { type: [integer, 'null'] }
+        district_id: { type: [integer, 'null'] }
+        role: { type: string }
+        onboarded: { type: boolean }
+        created_at: { type: integer, format: int64 }
+    Session:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        device_name: { type: [string, 'null'] }
+        platform: { type: [string, 'null'] }
+        os: { type: [string, 'null'] }
+        ip_address: { type: [string, 'null'] }
+        is_current: { type: boolean }
+        last_active_at: { type: [integer, 'null'] }
+        expires_at: { type: integer }
+        created_at: { type: integer }
+    Farm:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: [string, 'null'] }
+        region_id: { type: [integer, 'null'] }
+        district_id: { type: [integer, 'null'] }
+        system_type: { $ref: '#/components/schemas/SystemType' }
+        has_drain: { type: boolean }
+        mixing_method: { $ref: '#/components/schemas/Method' }
+        injector_ratio: { type: [integer, 'null'] }
+        stock_tank_l: { type: [number, 'null'] }
+        created_at: { type: integer }
+        updated_at: { type: integer }
+    Plot:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        farm_id: { type: integer, format: int64 }
+        name: { type: string }
+        area_m2: { type: [number, 'null'] }
+        default_volume_l: { type: [number, 'null'] }
+        is_archived: { type: boolean }
+        created_at: { type: integer }
+        updated_at: { type: integer }
+    WaterAnalysis:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        source: { $ref: '#/components/schemas/WaterSource' }
+        is_estimate: { type: boolean }
+        is_active: { type: boolean }
+        ec: { type: number }
+        ph: { type: [number, 'null'] }
+        ca: { type: number }
+        mg: { type: number }
+        na: { type: [number, 'null'] }
+        k: { type: [number, 'null'] }
+        cl: { type: [number, 'null'] }
+        so4: { type: [number, 'null'] }
+        no3: { type: [number, 'null'] }
+        hco3_mmol: { type: number }
+        lab_name: { type: [string, 'null'] }
+        sampled_at: { type: [integer, 'null'] }
+        created_at: { type: integer }
+    FarmOverview:
+      type: object
+      properties:
+        farm: { $ref: '#/components/schemas/Farm' }
+        water:
+          oneOf:
+            - $ref: '#/components/schemas/WaterAnalysis'
+            - type: 'null'
+        plots: { type: array, items: { $ref: '#/components/schemas/Plot' } }
+    Fertilizer:
+      type: object
+      properties:
+        code: { type: string }
+        name: { $ref: '#/components/schemas/I18nName' }
+        formula: { type: string }
+        kind: { type: string, enum: [macro, micro, acid] }
+        tank: { type: string, enum: [A, B, C] }
+        elements: { $ref: '#/components/schemas/Elements' }
+        solubility_g_l: { type: [number, 'null'] }
+        stock_g_l: { type: [number, 'null'] }
+        concentration_pct: { type: [number, 'null'] }
+        density_g_ml: { type: [number, 'null'] }
+        source: { type: [string, 'null'] }
+        is_reviewed: { type: boolean }
+        updated_at: { type: [integer, 'null'] }
+    EffectiveFertilizer:
+      type: object
+      description: Hisobda ishlatiladigan qiymat (xo'jaliknikimi yoki standart) + standart nusxasi
+      properties:
+        code: { type: string }
+        name: { $ref: '#/components/schemas/I18nName' }
+        formula: { type: string }
+        kind: { type: string }
+        tank: { type: string }
+        elements: { $ref: '#/components/schemas/Elements' }
+        stock_g_l: { type: [number, 'null'] }
+        concentration_pct: { type: [number, 'null'] }
+        density_g_ml: { type: [number, 'null'] }
+        stock_density_g_ml: { type: [number, 'null'] }
+        brand: { type: [string, 'null'] }
+        price_uzs_per_kg: { type: [integer, 'null'] }
+        overridden: { type: boolean }
+        default: { type: object }
+    CalcParameter:
+      type: object
+      properties:
+        key: { type: string }
+        value: { type: number }
+        min: { type: number }
+        max: { type: number }
+        unit: { type: [string, 'null'] }
+        description: { $ref: '#/components/schemas/I18nName' }
+        source: { type: [string, 'null'] }
+        farm_overridable: { type: boolean }
+        is_reviewed: { type: boolean }
+        updated_at: { type: integer }
+    EffectiveParam:
+      type: object
+      properties:
+        key: { type: string }
+        value: { type: number }
+        default: { type: number }
+        min: { type: number }
+        max: { type: number }
+        unit: { type: [string, 'null'] }
+        description: { $ref: '#/components/schemas/I18nName' }
+        farm_overridable: { type: boolean }
+        overridden: { type: boolean }
+    WaterSourceDefault:
+      type: object
+      properties:
+        source: { $ref: '#/components/schemas/WaterSource' }
+        region_id: { type: [integer, 'null'] }
+        ec: { type: number }
+        ph: { type: [number, 'null'] }
+        ca: { type: number }
+        mg: { type: number }
+        na: { type: number }
+        k: { type: number }
+        cl: { type: number }
+        so4: { type: number }
+        no3: { type: number }
+        hco3_mmol: { type: number }
+        note: { type: [string, 'null'] }
+        is_reviewed: { type: boolean }
+        updated_at: { type: integer }
+    Crop:
+      type: object
+      properties:
+        code: { type: string }
+        name: { $ref: '#/components/schemas/I18nName' }
+        salinity_ecw_threshold: { type: [number, 'null'], description: FAO-29 ECw chegarasi, dS/m }
+    Targets:
+      type: object
+      description: mg/L. So'rovda `s` e'tiborga olinmaydi (ion balansidan)
+      properties:
+        no3_n: { type: number }
+        nh4_n: { type: number }
+        p: { type: number }
+        k: { type: number }
+        ca: { type: number }
+        mg: { type: number }
+        s: { type: number }
+        cl: { type: number }
+        fe: { type: number }
+        mn: { type: number }
+        b: { type: number }
+        zn: { type: number }
+        cu: { type: number }
+        mo: { type: number }
+    CropProfile:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        crop: { type: string }
+        stage: { $ref: '#/components/schemas/Stage' }
+        title: { type: [string, 'null'] }
+        status: { type: string, enum: [draft, approved, archived] }
+        is_reviewed: { type: boolean }
+        source: { type: [string, 'null'] }
+        targets_mg_l: { $ref: '#/components/schemas/Targets' }
+        ec_target: { type: [number, 'null'] }
+        ph_min: { type: number }
+        ph_max: { type: number }
+        reviewed_at: { type: [integer, 'null'] }
+        updated_at: { type: integer }
+    RecipeRequest:
+      type: object
+      required: [crop, stage]
+      properties:
+        crop: { type: string }
+        stage: { $ref: '#/components/schemas/Stage' }
+        method: { $ref: '#/components/schemas/Method' }
+        volume_l: { type: number, description: direct uchun majburiy }
+        stock_tank_l: { type: number }
+        injector_ratio: { type: integer }
+        acids: { type: array, items: { type: string }, description: ishlatish tartibida }
+    Nutrients:
+      type: object
+      properties:
+        no3_n: { type: number }
+        nh4_n: { type: number }
+        p: { type: number }
+        k: { type: number }
+        ca: { type: number }
+        mg: { type: number }
+        s: { type: number }
+        cl: { type: number }
+    RecipeItem:
+      type: object
+      properties:
+        code: { type: string }
+        name: { $ref: '#/components/schemas/I18nName' }
+        grams: { type: number }
+    Warning:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          examples: [profile_not_reviewed, water_is_estimate, water_salinity_above_crop_threshold, water_exceeds_target,
+                     poor_ion_balance, no_acid_selected, bicarbonate_left, acid_over_target, infeasible_salts,
+                     micro_fertilizer_missing, solubility_exceeded]
+        element: { type: string }
+        value: { type: number }
+    Recipe:
+      type: object
+      description: Hisob natijasi; saqlangan retseptning `recipe` maydoni ham shu (o'zgarmas)
+      properties:
+        profile:
+          type: object
+          properties:
+            id: { type: integer, format: int64 }
+            crop: { type: string }
+            crop_name: { $ref: '#/components/schemas/I18nName' }
+            stage: { $ref: '#/components/schemas/Stage' }
+            title: { type: [string, 'null'] }
+            source: { type: [string, 'null'] }
+            is_reviewed: { type: boolean }
+        method: { $ref: '#/components/schemas/Method' }
+        volume_l: { type: number }
+        stock_tank_l: { type: [number, 'null'] }
+        injector_ratio: { type: [integer, 'null'] }
+        tanks:
+          type: array
+          items:
+            type: object
+            properties:
+              tank: { type: string, enum: [A, B] }
+              items: { type: array, items: { $ref: '#/components/schemas/RecipeItem' } }
+              total_grams: { type: number }
+        acids:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: string }
+              name: { $ref: '#/components/schemas/I18nName' }
+              tank: { type: string }
+              ml: { type: number }
+              element: { type: string, enum: [P, NO3, S] }
+              nutrient_mg_l: { type: number }
+              neutralized_hco3_mmol: { type: number }
+        target_mg_l: { $ref: '#/components/schemas/Nutrients' }
+        target_micro_mg_l:
+          type: object
+          properties: { fe: { type: number }, mn: { type: number }, b: { type: number }, zn: { type: number }, cu: { type: number }, mo: { type: number } }
+        achieved_mg_l: { $ref: '#/components/schemas/Nutrients' }
+        deviation_mg_l: { $ref: '#/components/schemas/Nutrients' }
+        ec:
+          type: object
+          properties:
+            target: { type: [number, 'null'] }
+            estimated: { type: number }
+        ph:
+          type: object
+          properties: { min: { type: number }, max: { type: number } }
+        hco3_left_mmol: { type: number }
+        water:
+          type: object
+          properties: { analysis_id: { type: integer, format: int64 }, ec: { type: number } }
+        warnings: { type: array, items: { $ref: '#/components/schemas/Warning' } }
+        calc_version: { type: string }
+    BatchSummary:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        crop: { type: string }
+        stage: { $ref: '#/components/schemas/Stage' }
+        plot_id: { type: [integer, 'null'] }
+        method: { $ref: '#/components/schemas/Method' }
+        volume_l: { type: number }
+        stock_tank_l: { type: [number, 'null'] }
+        injector_ratio: { type: [integer, 'null'] }
+        target_ec: { type: number, description: kutilgan EC (suv + kislota + tuzlar) }
+        status: { type: string, enum: [planned, mixed] }
+        created_at: { type: integer }
+        mixed_at: { type: [integer, 'null'] }
+    BatchDetail:
+      allOf:
+        - $ref: '#/components/schemas/BatchSummary'
+        - type: object
+          properties:
+            calc_version: { type: string }
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  code: { type: string }
+                  tank: { type: string, enum: [single, A, B, C] }
+                  grams: { type: number }
+                  ml: { type: number }
+            recipe: { $ref: '#/components/schemas/Recipe' }
+    Measurement:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        batch_id: { type: [integer, 'null'] }
+        plot_id: { type: [integer, 'null'] }
+        ec_in: { type: [number, 'null'] }
+        ph_in: { type: [number, 'null'] }
+        ec_drain: { type: [number, 'null'] }
+        ph_drain: { type: [number, 'null'] }
+        drain_pct: { type: [number, 'null'] }
+        solution_temp_c: { type: [number, 'null'] }
+        note: { type: [string, 'null'] }
+        measured_at: { type: integer }
+    Assessment:
+      type: object
+      properties:
+        ec:
+          type: object
+          properties:
+            value: { type: number }
+            expected: { type: number }
+            deviation_pct: { type: number }
+            tolerance_pct: { type: number }
+            status: { type: string, enum: [low, ok, high] }
+        ph:
+          type: object
+          properties:
+            value: { type: number }
+            min: { type: number }
+            max: { type: number }
+            status: { type: string, enum: [low, ok, high] }
+        drain:
+          type: object
+          properties:
+            ec_excess: { type: number }
+            ec_excess_max: { type: number }
+            ec_status: { type: string, enum: [ok, high] }
+            pct: { type: number }
+            pct_min: { type: number }
+            pct_max: { type: number }
+            pct_status: { type: string, enum: [low, ok, high] }
+        correction:
+          type: object
+          properties:
+            action: { type: string, enum: [add_water, add_salts, adjust_injector] }
+            water_l: { type: number }
+            fraction: { type: number }
+            items: { type: array, items: { $ref: '#/components/schemas/RecipeItem' } }
+            injector_ratio: { type: integer }
+        advice:
+          type: array
+          items:
+            type: string
+            enum: [ec_low_add_salts, ec_high_add_water, ec_adjust_injector, ph_high_add_acid, ph_low_check_acid,
+                   drain_ec_high, drain_pct_low, drain_pct_high]
+    Season:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        plot_id: { type: integer, format: int64 }
+        crop: { type: string }
+        crop_name: { $ref: '#/components/schemas/I18nName' }
+        stage: { $ref: '#/components/schemas/Stage' }
+        is_open: { type: boolean }
+        started_at: { type: integer }
+        ended_at: { type: [integer, 'null'] }
+        yield_kg: { type: [number, 'null'] }
+        area_m2: { type: [number, 'null'] }
+        fertilizer_cost_uzs: { type: [integer, 'null'] }
+    SeasonCard:
+      type: object
+      properties:
+        season: { $ref: '#/components/schemas/Season' }
+        days: { type: integer }
+        area_m2: { type: [number, 'null'] }
+        yield_kg_per_m2: { type: [number, 'null'] }
+        batches_mixed: { type: integer }
+        solution_l: { type: number }
+        fertilizers:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: string }
+              name: { $ref: '#/components/schemas/I18nName' }
+              grams: { type: number }
+              ml: { type: number }
+              cost_uzs: { type: [integer, 'null'] }
+        cost_uzs: { type: [integer, 'null'] }
+        cost_estimated: { type: boolean }
+        cost_partial: { type: boolean }
+        cost_per_kg_uzs: { type: [integer, 'null'] }
+        measurements:
+          type: object
+          properties:
+            count: { type: integer }
+            avg_ec_in: { type: [number, 'null'] }
+            avg_ph_in: { type: [number, 'null'] }
+            avg_drain_pct: { type: [number, 'null'] }

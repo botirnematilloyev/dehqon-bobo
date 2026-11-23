@@ -10,3 +10,5 @@ docs/
 *.md
 *.dump
 *.dump.age
+webapp/node_modules
+webapp/dist

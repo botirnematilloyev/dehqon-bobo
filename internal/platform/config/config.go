@@ -65,6 +65,8 @@ type TelegramConfig struct {
 	BotToken    string
 	WebAppURL   string
 	PollTimeout time.Duration
+	// WebAppMaxAge — Mini App initData qancha vaqt amal qiladi (auth_date dan).
+	WebAppMaxAge time.Duration
 }
 
 func getEnv(key, fallback string) string {
@@ -107,6 +109,11 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	webAppMaxAge, err := getEnvDuration("TELEGRAM_WEBAPP_MAX_AGE", 24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &Config{
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -145,9 +152,10 @@ func Load() (*Config, error) {
 			},
 		},
 		Telegram: TelegramConfig{
-			BotToken:    getEnv("TELEGRAM_BOT_TOKEN", ""),
-			WebAppURL:   getEnv("WEB_APP_URL", ""),
-			PollTimeout: tgPollTimeout,
+			BotToken:     getEnv("TELEGRAM_BOT_TOKEN", ""),
+			WebAppURL:    getEnv("WEB_APP_URL", ""),
+			PollTimeout:  tgPollTimeout,
+			WebAppMaxAge: webAppMaxAge,
 		},
 	}
 

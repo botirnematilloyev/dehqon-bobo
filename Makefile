@@ -4,7 +4,7 @@ export
 MIGRATIONS_DIR = migrations
 DB_URL = postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
-.PHONY: migrate-create migrate-up migrate-down migrate-version migrate-force run test test-cover test-integration up down
+.PHONY: migrate-create migrate-up migrate-down migrate-version migrate-force migrate-docker run test test-cover test-integration test-integration-mac up up-app down logs
 
 migrate-create:
 	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(name)
@@ -37,8 +37,17 @@ test-integration-mac:
 	DOCKER_HOST=unix://$(HOME)/.docker/run/docker.sock TESTCONTAINERS_RYUK_DISABLED=true \
 		go test -tags=integration ./... -count=1
 
-# Lokal Postgres + Redis
+# Lokal Postgres + Redis (API `make run` bilan)
 up:
 	docker compose up -d
 down:
-	docker compose down
+	docker compose --profile app down
+
+# Hammasi Docker'da: Postgres + Redis + migratsiyalar + API
+up-app:
+	docker compose --profile app up -d --build
+logs:
+	docker compose --profile app logs -f api
+# Migratsiyalarni Docker orqali (lokal `migrate` CLI kerak emas)
+migrate-docker:
+	docker compose --profile app run --rm migrate

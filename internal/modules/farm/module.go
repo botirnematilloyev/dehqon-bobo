@@ -110,6 +110,7 @@ func (m *Module) RegisterRoutes(r chi.Router) {
 type RecipeInputs struct {
 	Farm        domain.Farm
 	Water       *domain.WaterAnalysis
+	Plots       []domain.Plot // arxivlanmaganlari
 	Fertilizers []domain.EffectiveFertilizer
 	Params      []domain.EffectiveParam
 }
@@ -127,5 +128,11 @@ func (m *Module) RecipeInputs(ctx context.Context, userID, farmID int64) (*Recip
 	if err != nil {
 		return nil, err
 	}
-	return &RecipeInputs{Farm: overview.Farm, Water: overview.Water, Fertilizers: ferts, Params: params}, nil
+	return &RecipeInputs{Farm: overview.Farm, Water: overview.Water, Plots: overview.Plots, Fertilizers: ferts, Params: params}, nil
+}
+
+// CheckOwner — xo'jalik shu foydalanuvchinikimi (aks holda ErrFarmNotFound).
+func (m *Module) CheckOwner(ctx context.Context, userID, farmID int64) error {
+	_, err := m.farmSvc.Owned(ctx, userID, farmID)
+	return err
 }

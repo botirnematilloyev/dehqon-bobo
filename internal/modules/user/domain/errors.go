@@ -23,4 +23,9 @@ var (
 	ErrDistrictNotFound    = errors.New("district not found")
 	ErrInvalidLocation     = errors.New("invalid region or district")
 	ErrInvalidLocale       = errors.New("invalid locale")
+
+	// Telegram Mini App (initData) bilan kirish.
+	ErrInitDataInvalid     = errors.New("telegram init data is invalid")
+	ErrInitDataExpired     = errors.New("telegram init data is expired")
+	ErrTelegramUnavailable = errors.New("telegram bot is not configured")
 )

@@ -63,6 +63,11 @@ func (m *Module) CropProfile(ctx context.Context, cropCode string, stage domain.
 	return m.svc.CropProfile(ctx, cropCode, stage)
 }
 
+// Crop — faol ekin kod bo'yicha (`recipe` moduli, mavsumlar uchun).
+func (m *Module) Crop(ctx context.Context, code string) (*domain.Crop, error) {
+	return m.svc.Crop(ctx, code)
+}
+
 func (m *Module) RegisterRoutes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(m.deps.Auth)

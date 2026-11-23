@@ -117,6 +117,8 @@ type User struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Username  string `json:"username"`
+	// LanguageCode — Telegram ilovasi tili (IETF, masalan "uz", "ru", "en").
+	LanguageCode string `json:"language_code"`
 }
 
 type Chat struct {
@@ -131,9 +133,47 @@ type CallbackQuery struct {
 }
 
 type InlineKeyboardButton struct {
-	Text         string `json:"text"`
-	URL          string `json:"url,omitempty"`
-	CallbackData string `json:"callback_data,omitempty"`
+	Text         string      `json:"text"`
+	URL          string      `json:"url,omitempty"`
+	CallbackData string      `json:"callback_data,omitempty"`
+	WebApp       *WebAppInfo `json:"web_app,omitempty"`
+}
+
+// WebAppInfo — Mini App manzili (faqat HTTPS; faqat shaxsiy chatda).
+type WebAppInfo struct {
+	URL string `json:"url"`
+}
+
+// MenuButton — chat yonidagi menyu tugmasi. Type "web_app" — Mini App ochadi.
+type MenuButton struct {
+	Type   string      `json:"type"`
+	Text   string      `json:"text,omitempty"`
+	WebApp *WebAppInfo `json:"web_app,omitempty"`
+}
+
+type setChatMenuButtonRequest struct {
+	MenuButton MenuButton `json:"menu_button"`
+}
+
+// SetDefaultMenuButton — barcha shaxsiy chatlar uchun standart menyu tugmasi.
+func (c *Client) SetDefaultMenuButton(ctx context.Context, b MenuButton) error {
+	return c.call(ctx, "setChatMenuButton", setChatMenuButtonRequest{MenuButton: b}, nil)
+}
+
+type BotCommand struct {
+	Command     string `json:"command"`
+	Description string `json:"description"`
+}
+
+type setMyCommandsRequest struct {
+	Commands     []BotCommand `json:"commands"`
+	LanguageCode string       `json:"language_code,omitempty"`
+}
+
+// SetMyCommands — "/" menyusidagi buyruqlar. languageCode bo'sh — standart
+// (tili mos kelmagan barcha foydalanuvchilar uchun).
+func (c *Client) SetMyCommands(ctx context.Context, cmds []BotCommand, languageCode string) error {
+	return c.call(ctx, "setMyCommands", setMyCommandsRequest{Commands: cmds, LanguageCode: languageCode}, nil)
 }
 
 type InlineKeyboardMarkup struct {

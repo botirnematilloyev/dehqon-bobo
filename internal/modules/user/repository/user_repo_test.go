@@ -62,6 +62,22 @@ func TestUserRepository_Create(t *testing.T) {
 		require.Equal(t, domain.RoleFarmer, u.Role, "Create must fill Role from RETURNING role")
 	})
 
+	t.Run("locale: given value is stored, empty falls back to uz", func(t *testing.T) {
+		tx := beginTx(t)
+		repo := repository.NewUserRepository(tx)
+
+		ru := &domain.User{Username: "ru_user", Locale: domain.LocaleRussian, CreatedAt: testCreatedAt, UpdatedAt: testUpdatedAt}
+		require.NoError(t, repo.Create(ctx, ru))
+		require.Equal(t, domain.LocaleRussian, ru.Locale)
+		got, err := repo.FindByID(ctx, ru.ID)
+		require.NoError(t, err)
+		require.Equal(t, domain.LocaleRussian, got.Locale)
+
+		empty := &domain.User{Username: "no_locale_user", CreatedAt: testCreatedAt, UpdatedAt: testUpdatedAt}
+		require.NoError(t, repo.Create(ctx, empty))
+		require.Equal(t, domain.LocaleUzLatin, empty.Locale)
+	})
+
 	t.Run("writes every column to the right place", func(t *testing.T) {
 		tx := beginTx(t)
 		repo := repository.NewUserRepository(tx)

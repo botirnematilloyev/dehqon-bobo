@@ -259,6 +259,11 @@ func (s *FarmService) checkFarm(ctx context.Context, f *domain.Farm) error {
 
 // owned — xo'jalikni egasi tekshirilgan holda yuklaydi. Begona xo'jalik
 // ham ErrFarmNotFound: mavjudligini oshkor qilmaymiz.
+// Owned — boshqa modullar uchun (adapter orqali): xo'jalik egasini tekshiradi.
+func (s *FarmService) Owned(ctx context.Context, userID, farmID int64) (*domain.Farm, error) {
+	return s.owned(ctx, userID, farmID)
+}
+
 func (s *FarmService) owned(ctx context.Context, userID, farmID int64) (*domain.Farm, error) {
 	farm, err := s.farms.FindByID(ctx, farmID)
 	if err != nil {

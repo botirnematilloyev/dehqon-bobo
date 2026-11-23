@@ -1,6 +1,8 @@
 package notifier
 
 import (
+	"dehqon-bobo/internal/platform/i18n"
+
 	"bytes"
 	"context"
 	"encoding/json"
@@ -54,8 +56,7 @@ type telegramResponse struct {
 func (n *TelegramNotifier) Send(ctx context.Context, identifier, code string) error {
 	body, err := json.Marshal(telegramSendMessage{
 		ChatID: identifier,
-		Text: fmt.Sprintf(
-			"Tasdiqlash kodingiz: %s\n\nKodni hech kimga bermang.", code),
+		Text:   otpText(i18n.FromContext(ctx), code),
 	})
 	if err != nil {
 		return fmt.Errorf("notifier: telegram: marshal: %w", err)
@@ -105,4 +106,9 @@ func redactToken(err error, token string) error {
 		msg:   strings.ReplaceAll(err.Error(), token, "REDACTED"),
 		cause: err,
 	}
+}
+
+// otpText — kod alohida qo'shiladi (uz-Cyrl transliteratsiyasi uchun xavfsiz).
+func otpText(l i18n.Locale, code string) string {
+	return i18n.T(l, msgYourCode) + ": " + code + "\n\n" + i18n.T(l, msgNeverShare)
 }

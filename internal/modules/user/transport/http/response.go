@@ -37,6 +37,15 @@ func statusFromError(err error) (int, i18n.Key) {
 	case errors.Is(err, domain.ErrUnsupportedProvider):
 		return http.StatusBadRequest, msgUnsupportedProvider
 
+	case errors.Is(err, domain.ErrInitDataInvalid):
+		return http.StatusUnauthorized, msgInitDataInvalid
+
+	case errors.Is(err, domain.ErrInitDataExpired):
+		return http.StatusUnauthorized, msgInitDataExpired
+
+	case errors.Is(err, domain.ErrTelegramUnavailable):
+		return http.StatusServiceUnavailable, i18n.ErrServiceUnavailable
+
 	case errors.Is(err, domain.ErrLoginCodeInvalid):
 		return http.StatusBadRequest, msgInvalidLoginCode
 

@@ -75,7 +75,7 @@ func main() {
 		WaterDefaults: catalogPort,
 	})
 
-	recipeModule := recipe.New(recipe.Deps{
+	recipeModule := recipe.New(pool, recipe.Deps{
 		Auth:       userModule.Authenticated(),
 		UserIDFrom: userhttp.UserIDFromContext,
 		Farms:      recipeFarms{m: farmModule},
@@ -144,10 +144,7 @@ func main() {
 	}
 
 	router.Route("/api/v1", func(r chi.Router) {
-		userModule.RegisterRoutes(r)
-		farmModule.RegisterRoutes(r)
-		catalogModule.RegisterRoutes(r)
-		recipeModule.RegisterRoutes(r)
+		mountAPI(r, userModule, farmModule, catalogModule, recipeModule)
 	})
 
 	root := chi.NewMux()
@@ -225,5 +222,17 @@ func runSessionCleanup(ctx context.Context, svc *service.AuthService) {
 			return
 		case <-ticker.C:
 		}
+	}
+}
+
+type routeRegistrar interface {
+	RegisterRoutes(r chi.Router)
+}
+
+// mountAPI — /api/v1 ostidagi barcha modul marshrutlari (main va
+// OpenAPI moslik testi bitta ro'yxatdan foydalanadi).
+func mountAPI(r chi.Router, modules ...routeRegistrar) {
+	for _, m := range modules {
+		m.RegisterRoutes(r)
 	}
 }

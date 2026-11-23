@@ -10,6 +10,8 @@ import (
 // foydalanuvchining xo'jaligi uchun domain.ErrFarmNotFound.
 type Farms interface {
 	RecipeData(ctx context.Context, userID, farmID int64) (*domain.FarmData, error)
+	// CheckOwner — yengil tekshiruv (jurnalni o'qish uchun).
+	CheckOwner(ctx context.Context, userID, farmID int64) error
 }
 
 // Profiles — `catalog` moduliga ko'prik: ekin + bosqichning rasmiy profili
@@ -17,6 +19,8 @@ type Farms interface {
 // domain.ErrProfileNotFound.
 type Profiles interface {
 	Profile(ctx context.Context, cropCode string, stage domain.Stage) (*domain.Profile, error)
+	// Crop — faol ekin (mavsum uchun); domain.ErrCropNotFound.
+	Crop(ctx context.Context, code string) (*domain.CropRef, error)
 }
 
 type PreviewService struct {

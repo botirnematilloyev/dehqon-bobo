@@ -23,3 +23,6 @@ web/admin/*
 web/assets/*
 !web/*/index.html
 !web/*/.gitkeep
+
+# go build ./cmd/api natijasi
+/api

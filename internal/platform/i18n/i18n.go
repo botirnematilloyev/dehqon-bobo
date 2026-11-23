@@ -81,6 +81,15 @@ func WithLocale(ctx context.Context, l Locale) context.Context {
 	return context.WithValue(ctx, ctxKey{}, l)
 }
 
+// FromContext — ctx dagi til (HTTP so'rovidan middleware qo'ygan);
+// bo'lmasa standart (uz). Bildirishnomalar (email, Telegram) uchun.
+func FromContext(ctx context.Context) Locale {
+	if l, ok := ctx.Value(ctxKey{}).(Locale); ok {
+		return l
+	}
+	return Default
+}
+
 // FromRequest — middleware tanlagan til; middleware'siz ishlatilgan
 // handler'lar uchun sarlavhadan qayta aniqlanadi.
 func FromRequest(r *http.Request) Locale {

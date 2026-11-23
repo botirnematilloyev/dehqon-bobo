@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -20,6 +21,7 @@ type AuthService interface {
 	RefreshToken(ctx context.Context, rawRefreshToken string) (*service.AuthResult, error)
 	Logout(ctx context.Context, sessionID int64) error
 	VerifyTelegramLogin(ctx context.Context, in service.VerifyTelegramLoginInput) (*service.AuthResult, error)
+	VerifyTelegramWebApp(ctx context.Context, in service.VerifyTelegramWebAppInput) (*service.AuthResult, error)
 
 	ListSessions(ctx context.Context, userID int64) ([]domain.Session, error)
 	RevokeSession(ctx context.Context, userID, sessionID int64) error
@@ -188,6 +190,43 @@ func (h *Handler) VerifyTelegramLogin(w http.ResponseWriter, r *http.Request) {
 		status, msg := statusFromError(err)
 		if status == http.StatusInternalServerError {
 			slog.Error("verify telegram login failed", "error", err)
+		}
+		writeError(w, r, status, msg)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toAuthResponse(result))
+}
+
+// VerifyTelegramWebApp — POST /auth/telegram/webapp: Mini App initData bilan
+// kirish (Telegram.WebApp.initData, o'zgartirmasdan).
+func (h *Handler) VerifyTelegramWebApp(w http.ResponseWriter, r *http.Request) {
+	var req TelegramWebAppRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, r, http.StatusBadRequest, i18n.ErrInvalidJSON)
+		return
+	}
+	if strings.TrimSpace(req.InitData) == "" {
+		writeError(w, r, http.StatusBadRequest, msgInitDataRequired)
+		return
+	}
+
+	ip := clientIP(r)
+	result, err := h.authService.VerifyTelegramWebApp(r.Context(), service.VerifyTelegramWebAppInput{
+		InitData: req.InitData,
+		DeviceInfo: service.DeviceInfo{
+			FCMToken:   req.FCMToken,
+			DeviceID:   req.DeviceID,
+			DeviceName: req.DeviceName,
+			IPAddress:  &ip,
+			Platform:   parsePlatform(req.Platform),
+			OS:         req.OS,
+		},
+	})
+	if err != nil {
+		status, msg := statusFromError(err)
+		if status == http.StatusInternalServerError {
+			slog.Error("verify telegram webapp failed", "error", err)
 		}
 		writeError(w, r, status, msg)
 		return

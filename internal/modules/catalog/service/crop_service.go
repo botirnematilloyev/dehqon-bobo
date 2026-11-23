@@ -10,6 +10,10 @@ func (s *CatalogService) Crops(ctx context.Context) ([]domain.Crop, error) {
 	return s.repo.ListCrops(ctx)
 }
 
+func (s *CatalogService) Crop(ctx context.Context, code string) (*domain.Crop, error) {
+	return s.repo.FindCrop(ctx, code)
+}
+
 // CropProfiles — ekin va uning arxivlanmagan rasmiy profillari.
 func (s *CatalogService) CropProfiles(ctx context.Context, cropCode string) (*domain.Crop, []domain.CropProfile, error) {
 	crop, err := s.repo.FindCrop(ctx, cropCode)

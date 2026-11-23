@@ -23,6 +23,14 @@ var (
 	// ErrCatalogIncomplete — katalogda kerakli tuz yoki parametr yo'q yoki
 	// noto'g'ri (agronom tuzatishi kerak).
 	ErrCatalogIncomplete = errors.New("catalog is missing a salt or calc parameter")
+
+	ErrBatchNotFound = errors.New("recipe not found")
+	ErrPlotNotFound  = errors.New("plot not found in this farm")
+	// ErrInfeasible — manfiy gramm: tanlangan tuzlar bilan profilni yig'ib
+	// bo'lmaydi. Preview ko'rsatadi, lekin saqlab bo'lmaydi.
+	ErrInfeasible = errors.New("recipe has negative amounts and cannot be mixed")
+	// ErrAlreadyMixed — tayyorlangan eritma jurnaldan o'chirilmaydi.
+	ErrAlreadyMixed = errors.New("recipe is already mixed")
 )
 
 type Stage int16
@@ -71,6 +79,14 @@ type Fertilizer struct {
 	Name         map[string]string
 	Tank         int16 // 1 A, 2 B, 3 C
 	SolubilityGL *float64
+	// PriceUZSPerKg — dehqon kiritgan narx (farm_fertilizers); nil = noma'lum.
+	PriceUZSPerKg *int64
+}
+
+// Plot — xo'jalikdagi issiqxona (farm modulidan).
+type Plot struct {
+	ID     int64
+	AreaM2 *float64
 }
 
 // Water — xo'jalikning faol suv tahlili.
@@ -88,6 +104,17 @@ type FarmData struct {
 	InjectorRatio *int32
 	StockTankL    *float64
 	Water         *Water // nil = faol tahlil yo'q
+	Plots         []Plot // arxivlanmagan issiqxonalar
 	Fertilizers   []Fertilizer
 	Params        map[string]float64 // effective calc_parameters
+}
+
+// Plot — shu xo'jalikning arxivlanmagan issiqxonasi.
+func (f *FarmData) Plot(id int64) (Plot, bool) {
+	for _, p := range f.Plots {
+		if p.ID == id {
+			return p, true
+		}
+	}
+	return Plot{}, false
 }

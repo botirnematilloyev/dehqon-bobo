@@ -44,6 +44,10 @@ type AuthService struct {
 	otpTTL     time.Duration
 	refreshTTL time.Duration
 	txManager  TxManager
+
+	botToken     string
+	webAppMaxAge time.Duration
+	now          func() time.Time
 }
 
 type AuthDeps struct {
@@ -60,6 +64,10 @@ type AuthDeps struct {
 type AuthConfig struct {
 	OTPTTL     time.Duration
 	RefreshTTL time.Duration
+
+	// Telegram Mini App: initData imzosi bot tokeni bilan tekshiriladi.
+	TelegramBotToken string
+	WebAppMaxAge     time.Duration
 }
 
 func NewAuthService(deps AuthDeps, cfg AuthConfig) *AuthService {
@@ -75,6 +83,10 @@ func NewAuthService(deps AuthDeps, cfg AuthConfig) *AuthService {
 
 		otpTTL:     cfg.OTPTTL,
 		refreshTTL: cfg.RefreshTTL,
+
+		botToken:     cfg.TelegramBotToken,
+		webAppMaxAge: cfg.WebAppMaxAge,
+		now:          time.Now,
 	}
 }
 
@@ -383,12 +395,19 @@ func generateUsername() (string, error) {
 }
 
 func (s *AuthService) resolveUser(ctx context.Context, provider domain.AuthProvider, identifier string, now int64) (*domain.User, error) {
+	return s.resolveUserWith(ctx, provider, identifier, now, nil)
+}
+
+// resolveUserWith — yangi foydalanuvchi yaratilsa init uni to'ldiradi
+// (masalan Telegram'dagi ism va til). Mavjudlari o'zgartirilmaydi:
+// dehqon profilda tanlagan til ustidan yozilmasin.
+func (s *AuthService) resolveUserWith(ctx context.Context, provider domain.AuthProvider, identifier string, now int64, init func(*domain.User)) (*domain.User, error) {
 	user, err := s.loadUserByAccount(ctx, provider, identifier, now)
 	switch {
 	case err == nil:
 		return user, nil
 	case errors.Is(err, domain.ErrAccountNotFound):
-		return s.registerUser(ctx, provider, identifier, now)
+		return s.registerUser(ctx, provider, identifier, now, init)
 	default:
 		return nil, err
 	}
@@ -424,6 +443,7 @@ func (s *AuthService) registerUser(
 	provider domain.AuthProvider,
 	identifier string,
 	now int64,
+	init func(*domain.User),
 ) (*domain.User, error) {
 	var user *domain.User
 
@@ -435,8 +455,12 @@ func (s *AuthService) registerUser(
 
 		user = &domain.User{
 			Username:  username,
+			Locale:    domain.LocaleUzLatin,
 			CreatedAt: now,
 			UpdatedAt: now,
+		}
+		if init != nil {
+			init(user)
 		}
 		if err := s.userRepo.Create(ctx, user); err != nil {
 			return err

@@ -1,5 +1,8 @@
 # API umumiy ko'rinishi
 
+To'liq spec: [openapi.yaml](openapi.yaml) (OpenAPI 3.1). `cmd/api/openapi_test.go` spec va
+router mosligini tekshiradi — yangi endpoint spec'siz qo'shilsa test yiqiladi.
+
 Hamma yo'llar `/api/v1` ostida. 🔒 = `Authorization: Bearer <access_token>` kerak.
 
 ## Til (Accept-Language)
@@ -34,6 +37,7 @@ Kodlar `<modul>.<sabab>` ko'rinishida: `common.*`, `auth.*`, `user.*`, `location
 ### Kirish (`/auth`)
 | | Yo'l | Izoh |
 |---|---|---|
+| POST | `/auth/telegram/webapp` | **Mini App ichidan kirish (asosiy):** `{"init_data": Telegram.WebApp.initData}` — kod kerak emas |
 | POST | `/auth/telegram/verify` | Telegram botdan olingan kod bilan kirish |
 | POST | `/auth/otp/request`, `/auth/otp/verify` | email OTP (zaxira usul) |
 | POST | `/auth/refresh` | tokenni yangilash |
@@ -70,6 +74,21 @@ Kodlar `<modul>.<sabab>` ko'rinishida: `common.*`, `auth.*`, `user.*`, `location
 | | Yo'l | Izoh |
 |---|---|---|
 | POST | `/farms/{farmID}/recipes/preview` | ekin + bosqich → A/B tanklar uchun gramm, kislota ml, ogohlantirishlar. Saqlamaydi |
+| POST / GET | `/farms/{farmID}/recipes` | retseptni saqlash (jurnal) / ro'yxat |
+| GET / DELETE | `/farms/{farmID}/recipes/{id}` | ochish / tayyorlanmaganini o'chirish |
+| POST | `/farms/{farmID}/recipes/{id}/mixed` | "tayyorladim" |
+| POST | `/farms/{farmID}/recipes/{id}/correction` | aylanma bak: tuzatuvchi eritma (HPG korrektori) |
+| POST / GET | `/farms/{farmID}/measurements` | EC/pH/drenaj o'lchovi + baholash va tuzatish / ro'yxat |
+
+### Mavsumlar 🔒
+| | Yo'l | Izoh |
+|---|---|---|
+| POST | `/farms/{farmID}/plots/{plotID}/seasons` | mavsum boshlash |
+| GET | `/farms/{farmID}/seasons` | ro'yxat (`open`, `plot_id`) |
+| GET / PATCH | `/farms/{farmID}/seasons/{id}` | natija kartochkasi / bosqich |
+| POST | `/farms/{farmID}/seasons/{id}/end` | yakun: hosil, xarajat → kartochka |
+
+Batafsil: [api-season.md](api-season.md).
 
 Batafsil: [api-recipe.md](api-recipe.md).
 

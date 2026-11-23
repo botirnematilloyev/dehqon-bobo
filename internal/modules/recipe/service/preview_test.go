@@ -265,6 +265,8 @@ func (f fakeFarms) RecipeData(context.Context, int64, int64) (*domain.FarmData, 
 	return f.data, f.err
 }
 
+func (f fakeFarms) CheckOwner(context.Context, int64, int64) error { return f.err }
+
 type fakeProfiles struct{ calls int }
 
 func (f *fakeProfiles) Profile(_ context.Context, code string, _ domain.Stage) (*domain.Profile, error) {
@@ -274,6 +276,13 @@ func (f *fakeProfiles) Profile(_ context.Context, code string, _ domain.Stage) (
 	}
 	p := tomato()
 	return &p, nil
+}
+
+func (f *fakeProfiles) Crop(_ context.Context, code string) (*domain.CropRef, error) {
+	if code != "tomato" {
+		return nil, domain.ErrCropNotFound
+	}
+	return &domain.CropRef{ID: 1, Code: code}, nil
 }
 
 func TestPreviewService(t *testing.T) {

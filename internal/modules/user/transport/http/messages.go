@@ -14,6 +14,9 @@ const (
 	msgCodeSixDigits       i18n.Key = "auth.code_must_be_6_digits"
 	msgIdentifierRequired  i18n.Key = "auth.identifier_required"
 	msgRefreshRequired     i18n.Key = "auth.refresh_token_required"
+	msgInitDataInvalid     i18n.Key = "auth.invalid_init_data"
+	msgInitDataExpired     i18n.Key = "auth.init_data_expired"
+	msgInitDataRequired    i18n.Key = "auth.init_data_required"
 
 	msgUserNotFound      i18n.Key = "user.not_found"
 	msgUsernameTaken     i18n.Key = "user.username_taken"
@@ -71,6 +74,15 @@ func init() {
 		},
 		msgRefreshRequired: {
 			i18n.Uzbek: "refresh_token majburiy", i18n.Russian: "refresh_token обязателен", i18n.English: "Refresh token is required",
+		},
+		msgInitDataInvalid: {
+			i18n.Uzbek: "Telegram ma’lumoti tasdiqlanmadi. Ilovani bot orqali qayta oching", i18n.Russian: "Данные Telegram не прошли проверку. Откройте приложение через бота заново", i18n.English: "Telegram init data failed verification. Reopen the app from the bot",
+		},
+		msgInitDataExpired: {
+			i18n.Uzbek: "Kirish muddati o‘tgan. Ilovani bot orqali qayta oching", i18n.Russian: "Сессия устарела. Откройте приложение через бота заново", i18n.English: "Init data has expired. Reopen the app from the bot",
+		},
+		msgInitDataRequired: {
+			i18n.Uzbek: "init_data majburiy", i18n.Russian: "init_data обязателен", i18n.English: "init_data is required",
 		},
 		msgUserNotFound: {
 			i18n.Uzbek: "Foydalanuvchi topilmadi", i18n.Russian: "Пользователь не найден", i18n.English: "User not found",

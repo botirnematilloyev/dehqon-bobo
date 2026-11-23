@@ -14,6 +14,8 @@ import (
 	"net/smtp"
 	"net/textproto"
 	"strings"
+
+	"dehqon-bobo/internal/platform/i18n"
 )
 
 type EmailConfig struct {
@@ -34,7 +36,7 @@ func NewEmailNotifier(cfg EmailConfig) *EmailNotifier {
 }
 
 func (n *EmailNotifier) Send(ctx context.Context, identifier, code string) error {
-	msg, err := n.message(identifier, code)
+	msg, err := n.messageIn(i18n.FromContext(ctx), identifier, code)
 	if err != nil {
 		return err
 	}
@@ -93,6 +95,11 @@ func (n *EmailNotifier) Send(ctx context.Context, identifier, code string) error
 }
 
 func (n *EmailNotifier) message(to, code string) ([]byte, error) {
+	return n.messageIn(i18n.Default, to, code)
+}
+
+// messageIn — xat foydalanuvchi tilida (so'rovdagi Accept-Language).
+func (n *EmailNotifier) messageIn(l i18n.Locale, to, code string) ([]byte, error) {
 	if strings.ContainsAny(to, "\r\n") {
 		return nil, fmt.Errorf("notifier: email: recipient contains a line break")
 	}
@@ -100,10 +107,10 @@ func (n *EmailNotifier) message(to, code string) ([]byte, error) {
 	var parts bytes.Buffer
 	mw := multipart.NewWriter(&parts)
 
-	if err := writeTextPart(mw, "text/plain", textBody(code)); err != nil {
+	if err := writeTextPart(mw, "text/plain", textBody(l, code)); err != nil {
 		return nil, err
 	}
-	if err := writeTextPart(mw, "text/html", htmlBody(code)); err != nil {
+	if err := writeTextPart(mw, "text/html", htmlBody(l, code)); err != nil {
 		return nil, err
 	}
 	if err := mw.Close(); err != nil {
@@ -113,7 +120,8 @@ func (n *EmailNotifier) message(to, code string) ([]byte, error) {
 	var b strings.Builder
 	b.WriteString("From: " + n.fromHeader() + "\r\n")
 	b.WriteString("To: " + to + "\r\n")
-	b.WriteString("Subject: Tasdiqlash kodi\r\n")
+	// Kirill/maxsus belgilar RFC 2047 bilan; ASCII o'zgarishsiz qoladi.
+	b.WriteString("Subject: " + mime.QEncoding.Encode("utf-8", i18n.T(l, msgSubject)) + "\r\n")
 	b.WriteString("MIME-Version: 1.0\r\n")
 	b.WriteString("Content-Type: multipart/alternative; boundary=\"" + mw.Boundary() + "\"\r\n")
 	b.WriteString("\r\n")
@@ -141,20 +149,21 @@ func writeTextPart(mw *multipart.Writer, contentType, content string) error {
 	return nil
 }
 
-func textBody(code string) string {
-	return "Tasdiqlash kodingiz: " + code + "\n" +
-		"Kod 5 daqiqa amal qiladi.\n" +
-		"Kodni hech kimga bermang.\n\n" +
-		"Agar bu so'rovni siz yubormagan bo'lsangiz, xatni e'tiborsiz qoldiring.\n"
+func textBody(l i18n.Locale, code string) string {
+	return i18n.T(l, msgYourCode) + ": " + code + "\n" +
+		i18n.T(l, msgValidFor) + "\n" +
+		i18n.T(l, msgNeverShare) + "\n\n" +
+		i18n.T(l, msgIgnoreIfNot) + "\n"
 }
 
-func htmlBody(code string) string {
+func htmlBody(l i18n.Locale, code string) string {
 	safe := html.EscapeString(code)
-
+	t := func(k i18n.Key) string { return html.EscapeString(i18n.T(l, k)) }
+	lang := strings.SplitN(string(l), "-", 2)[0]
 	return `<!DOCTYPE html>
-<html lang="uz">
+<html lang="` + lang + `">
 <body style="margin:0;padding:0;background-color:#f1f3f7;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Tasdiqlash kodingiz: ` + safe + `</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">` + t(msgYourCode) + `: ` + safe + `</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f3f7;">
 <tr>
 <td align="center" style="padding:40px 16px;">
@@ -167,8 +176,8 @@ func htmlBody(code string) string {
 </tr>
 <tr>
 <td style="padding:16px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-<h1 style="margin:0;font-size:21px;line-height:1.35;font-weight:600;color:#141821;">Tasdiqlash kodi</h1>
-<p style="margin:10px 0 0 0;font-size:15px;line-height:1.6;color:#5b6478;">Hisobingizga kirish uchun quyidagi kodni kiriting.</p>
+<h1 style="margin:0;font-size:21px;line-height:1.35;font-weight:600;color:#141821;">` + t(msgSubject) + `</h1>
+<p style="margin:10px 0 0 0;font-size:15px;line-height:1.6;color:#5b6478;">` + t(msgIntro) + `</p>
 </td>
 </tr>
 <tr>
@@ -182,13 +191,13 @@ func htmlBody(code string) string {
 </tr>
 <tr>
 <td style="padding:18px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-<p style="margin:0;font-size:14px;line-height:1.6;color:#5b6478;">Kod <strong style="color:#141821;">5 daqiqa</strong> amal qiladi. Uni hech kimga bermang &mdash; xodimlarimiz ham hech qachon so'ramaydi.</p>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#5b6478;">` + t(msgValidFor) + ` ` + t(msgNeverShare) + `</p>
 </td>
 </tr>
 <tr>
 <td style="padding:24px 36px 32px 36px;">
 <div style="height:1px;background-color:#e9ebf0;font-size:0;line-height:0;">&nbsp;</div>
-<p style="margin:18px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;line-height:1.6;color:#8a92a6;">Agar bu so'rovni siz yubormagan bo'lsangiz, xatni e'tiborsiz qoldiring.</p>
+<p style="margin:18px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;line-height:1.6;color:#8a92a6;">` + t(msgIgnoreIfNot) + `</p>
 </td>
 </tr>
 </table>

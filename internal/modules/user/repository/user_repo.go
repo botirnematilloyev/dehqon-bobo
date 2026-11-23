@@ -19,8 +19,8 @@ func NewUserRepository(q db.Querier) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, u *domain.User) error {
 	const query = `
-		INSERT INTO users (username, full_name, avatar_url, region_id, district_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO users (username, full_name, avatar_url, region_id, district_id, created_at, updated_at, locale)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE(NULLIF($8, ''), 'uz'))
 		RETURNING id, role, locale
 	`
 	q := db.FromContext(ctx, r.q)
@@ -32,6 +32,7 @@ func (r *UserRepository) Create(ctx context.Context, u *domain.User) error {
 		u.DistrictID,
 		u.CreatedAt,
 		u.UpdatedAt,
+		u.Locale,
 	).Scan(&u.ID, &u.Role, &u.Locale)
 	if err != nil {
 		if db.IsUniqueViolation(err) {

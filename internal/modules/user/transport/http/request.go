@@ -37,6 +37,18 @@ type TelegramVerifyRequest struct {
 	OS         *string `json:"os"`
 }
 
+// TelegramWebAppRequest — init_data: Telegram.WebApp.initData satri
+// (o'zgartirmasdan, URL-kodlangan holda).
+type TelegramWebAppRequest struct {
+	InitData string `json:"init_data"`
+
+	DeviceID   *string `json:"device_id"`
+	DeviceName *string `json:"device_name"`
+	FCMToken   *string `json:"fcm_token"`
+	Platform   *string `json:"platform"`
+	OS         *string `json:"os"`
+}
+
 type UpdateProfileRequest struct {
 	Username   *string `json:"username"`
 	FullName   *string `json:"full_name"`
