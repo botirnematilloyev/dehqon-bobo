@@ -1,6 +1,6 @@
 import type {
   Assessment, AuthResponse, BatchDetail, BatchSummary, Crop, Farm, FarmOverview, Fertilizer,
-  Profile, Recipe, RecipeRequest, Region,
+  District, Profile, Recipe, RecipeRequest, Region,
 } from './types'
 
 // Barcha so'rovlar nisbiy: prod'da ilova va API bitta domenda, dev'da Vite proxy.
@@ -67,7 +67,9 @@ export class Api {
 
   me = () => this.call<Profile>('GET', '/me')
   regions = () => this.call<{ regions: Region[] }>('GET', '/regions').then((r) => r.regions)
-  onboard = (body: { region_id: number; water_source: string; system_type: string }) =>
+  districts = (regionId: number) =>
+    this.call<{ districts: District[] }>('GET', `/districts?region_id=${regionId}`).then((r) => r.districts)
+  onboard = (body: { region_id: number; district_id?: number; water_source: string; system_type: string }) =>
     this.call<FarmOverview>('POST', '/me/onboarding', body)
   farms = () => this.call<{ farms: Farm[] }>('GET', '/farms').then((r) => r.farms)
   farm = (id: number) => this.call<FarmOverview>('GET', `/farms/${id}`)

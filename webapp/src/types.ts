@@ -21,6 +21,8 @@ export interface Profile {
 
 export interface Region { id: number; name: I18nName }
 
+export interface District { id: number; region_id: number; name: I18nName }
+
 export interface Farm {
   id: number
   name: string | null

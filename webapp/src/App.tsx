@@ -46,16 +46,19 @@ export function App() {
     if (splash === 'on') setChrome(skyTopColor(sky.phase))
   }, [splash, sky.phase])
 
+  // Kirish tugagach splash yo'qoladi. Taymerlar faqat boot holatiga bog'liq:
+  // `splash` deps'da bo'lsa, 'leaving' ga o'tishda ikkinchi taymer bekor
+  // bo'lib, ko'rinmas splash ekranni to'sib qolardi.
   useEffect(() => {
-    if (boot.state === 'loading' || splash !== 'on' || holdSplash) return
+    if (boot.state === 'loading' || holdSplash) return
     const wait = Math.max(0, SPLASH_MIN_MS - (Date.now() - shownAt.current))
-    const t1 = setTimeout(() => setSplash('leaving'), wait)
+    const t1 = setTimeout(() => setSplash((s) => (s === 'on' ? 'leaving' : s)), wait)
     const t2 = setTimeout(() => {
       setSplash('off')
       setChrome(tg?.colorScheme === 'dark' ? (tg.themeParams.secondary_bg_color ?? '#0F1613') : '#F3F6F1')
     }, wait + 300)
     return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [boot.state, splash, holdSplash])
+  }, [boot.state, holdSplash])
 
   const loadFarm = useCallback(async () => {
     const farms = await api.farms()
