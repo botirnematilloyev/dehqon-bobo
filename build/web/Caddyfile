@@ -1,6 +1,16 @@
 # SITE_ADDRESS: domen (masalan app.dehqonbobo.uz) — Caddy Let's Encrypt
 # sertifikatini o'zi oladi (80 va 443 portlar ochiq bo'lishi kerak).
 # Lokal: ":80" — faqat HTTP.
+{
+	servers {
+		# Oldida boshqa reverse proxy (masalan VPS'dagi nginx) bo'lsa, uning
+		# X-Forwarded-For'iga ishoniladi — aks holda API barcha foydalanuvchilarni
+		# bitta IP (nginx) deb ko'radi va rate limit hammaga bitta bo'ladi.
+		# Port faqat 127.0.0.1 ga ochilgani uchun xavfsiz.
+		trusted_proxies static private_ranges
+	}
+}
+
 {$SITE_ADDRESS::80} {
 	encode zstd gzip
 
